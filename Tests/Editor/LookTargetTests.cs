@@ -97,6 +97,47 @@ namespace Framework.Tests
         }
 
         [Test]
+        public void Looking_away_and_back_from_inside_a_listener_raises_the_events_in_the_order_they_happened()
+        {
+            var order = new System.Collections.Generic.List<string>();
+            var flipped = false;
+            _target.OnLookStarted.AddListener(() => order.Add("started"));
+            _target.OnSeen.AddListener(() =>
+            {
+                order.Add("seen");
+                if (!flipped)
+                {
+                    flipped = true;
+                    _target.ReportGaze(false, 0f);
+                    _target.ReportGaze(true, 0f);
+                }
+            });
+            _target.OnLookEnded.AddListener(() => order.Add("ended"));
+
+            _target.ReportGaze(true, 0.1f);
+
+            CollectionAssert.AreEqual(new[] { "started", "seen", "ended", "started" }, order);
+            Assert.That(_target.IsBeingLookedAt, Is.True);
+        }
+
+        [Test]
+        public void Resetting_the_look_from_inside_a_listener_drops_the_queued_events()
+        {
+            var ended = 0;
+            _target.OnLookEnded.AddListener(() => ended++);
+            _target.OnSeen.AddListener(() =>
+            {
+                _target.ReportGaze(false, 0f);
+                _target.ResetLook();
+            });
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(ended, Is.EqualTo(0));
+            Assert.That(_target.IsSeen, Is.False);
+        }
+
+        [Test]
         public void The_aim_point_defaults_to_the_target_transform()
         {
             Assert.That(_target.AimPoint, Is.SameAs(_host.transform));

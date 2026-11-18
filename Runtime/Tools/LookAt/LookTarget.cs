@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -23,7 +24,7 @@ namespace Framework
 
         private LookDwell _dwell;
         private bool _isReporting;
-        private LookChange _pendingChange;
+        private readonly Queue<LookChange> _pendingChanges = new Queue<LookChange>();
 
         public UnityEvent OnLookStarted => _onLookStarted;
         public UnityEvent OnLookEnded => _onLookEnded;
@@ -61,34 +62,41 @@ namespace Framework
             var change = Dwell.Update(isLookedAt, deltaSeconds);
             if (_isReporting)
             {
-                _pendingChange |= change;
+                if (change != LookChange.None)
+                {
+                    _pendingChanges.Enqueue(change);
+                }
                 return change;
             }
 
             _isReporting = true;
             try
             {
-                var toRaise = change;
-                var rounds = 0;
-                while (toRaise != LookChange.None)
-                {
-                    if (++rounds > MaxEventRounds)
-                    {
-                        Debug.LogError($"{name}: look events kept retriggering themselves, so they were stopped after {MaxEventRounds} rounds.", this);
-                        break;
-                    }
-
-                    RaiseEvents(toRaise);
-                    toRaise = _pendingChange;
-                    _pendingChange = LookChange.None;
-                }
+                RaiseInOrder(change);
             }
             finally
             {
                 _isReporting = false;
-                _pendingChange = LookChange.None;
+                _pendingChanges.Clear();
             }
             return change;
+        }
+
+        private void RaiseInOrder(LookChange first)
+        {
+            var next = first;
+            var rounds = 0;
+            while (next != LookChange.None)
+            {
+                if (++rounds > MaxEventRounds)
+                {
+                    Debug.LogError($"{name}: look events kept retriggering themselves, so they were stopped after {MaxEventRounds} rounds.", this);
+                    return;
+                }
+
+                RaiseEvents(next);
+                next = _pendingChanges.Count > 0 ? _pendingChanges.Dequeue() : LookChange.None;
+            }
         }
 
         private void RaiseEvents(LookChange change)
@@ -113,6 +121,7 @@ namespace Framework
         public void ResetLook()
         {
             Dwell.Reset();
+            _pendingChanges.Clear();
         }
     }
 }

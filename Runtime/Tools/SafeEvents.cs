@@ -9,6 +9,11 @@ namespace Framework
     {
         public static void Invoke(UnityEvent unityEvent, Object context)
         {
+            if (unityEvent == null)
+            {
+                return;
+            }
+
             try
             {
                 unityEvent.Invoke();
@@ -21,6 +26,11 @@ namespace Framework
 
         public static void Invoke<T>(UnityEvent<T> unityEvent, T argument, Object context)
         {
+            if (unityEvent == null)
+            {
+                return;
+            }
+
             try
             {
                 unityEvent.Invoke(argument);

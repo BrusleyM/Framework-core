@@ -263,7 +263,7 @@ namespace Framework.Tests
             LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("NullReferenceException"));
 
             SetPrivate(_point, "_easing", null);
-            yield return WaitUntil(() => !_point.IsOccupied, 2f);
+            yield return PlayModeWait.Until(() => !_point.IsOccupied, 2f);
 
             Assert.That(accepted, Is.True);
             Assert.That(_point.IsOccupied, Is.False);
@@ -280,20 +280,11 @@ namespace Framework.Tests
             LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("listener failed"));
 
             _point.TryOffer(_snappable);
-            yield return WaitUntil(() => _snappedCount > 0, 2f);
+            yield return PlayModeWait.Until(() => _snappedCount > 0, 2f);
             yield return null;
 
             Assert.That(_point.IsOccupied, Is.True);
             Assert.That(_snappableObject.transform.position, Is.EqualTo(_pointObject.transform.position));
-        }
-
-        private static IEnumerator WaitUntil(System.Func<bool> condition, float timeoutSeconds)
-        {
-            var deadline = Time.realtimeSinceStartup + timeoutSeconds;
-            while (!condition() && Time.realtimeSinceStartup < deadline)
-            {
-                yield return null;
-            }
         }
 
         private static void SetPrivate(object target, string fieldName, object value)

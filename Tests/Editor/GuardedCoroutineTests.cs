@@ -89,6 +89,35 @@ namespace Framework.Tests
             Assert.That(finallyRan, Is.True);
         }
 
+        private sealed class WaitForChecks : CustomYieldInstruction
+        {
+            private int _remaining;
+
+            public WaitForChecks(int checks)
+            {
+                _remaining = checks;
+            }
+
+            public override bool keepWaiting => _remaining-- > 0;
+        }
+
+        [Test]
+        public void A_custom_yield_instruction_is_waited_on_one_step_at_a_time_and_then_the_routine_continues()
+        {
+            var journal = new List<string>();
+            IEnumerator Waiting()
+            {
+                journal.Add("before");
+                yield return new WaitForChecks(3);
+                journal.Add("after");
+            }
+
+            var yielded = Drain(GuardedCoroutine.Run(Waiting(), _ => Assert.Fail("no failure expected")));
+
+            Assert.That(yielded.Count, Is.EqualTo(3));
+            CollectionAssert.AreEqual(new[] { "before", "after" }, journal);
+        }
+
         [Test]
         public void A_failure_in_a_nested_routine_is_reported_to_the_failure_handler()
         {

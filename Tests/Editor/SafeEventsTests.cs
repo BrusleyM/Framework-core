@@ -19,6 +19,16 @@ namespace Framework.Tests
         }
 
         [Test]
+        public void A_missing_unity_event_is_ignored()
+        {
+            UnityEvent none = null;
+            UnityEvent<int> noneWithArgument = null;
+
+            Assert.DoesNotThrow(() => SafeEvents.Invoke(none, null));
+            Assert.DoesNotThrow(() => SafeEvents.Invoke(noneWithArgument, 1, null));
+        }
+
+        [Test]
         public void A_unity_event_with_an_argument_passes_the_argument_to_its_listeners()
         {
             var unityEvent = new UnityEvent<int>();

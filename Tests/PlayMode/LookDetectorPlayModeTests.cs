@@ -629,6 +629,7 @@ namespace Framework.Tests
 
             Assert.That(started, Is.GreaterThan(0));
             Assert.That(started, Is.LessThan(10));
+            Assert.That(_ahead.IsBeingLookedAt, Is.True);
             _detector.StopLooking();
         }
 
@@ -663,21 +664,12 @@ namespace Framework.Tests
             yield return null;
 
             _detector.StartLooking();
-            yield return WaitUntil(() => side.IsSeen, 3f);
+            yield return PlayModeWait.Until(() => side.IsSeen, 3f);
 
             Assert.That(_foundCount, Is.EqualTo(2));
             Assert.That(side.IsSeen, Is.True);
             Assert.That(_detector.IsLooking, Is.True);
             _detector.StopLooking();
-        }
-
-        private static IEnumerator WaitUntil(System.Func<bool> condition, float timeoutSeconds)
-        {
-            var deadline = Time.realtimeSinceStartup + timeoutSeconds;
-            while (!condition() && Time.realtimeSinceStartup < deadline)
-            {
-                yield return null;
-            }
         }
 
         [UnityTest]

@@ -8,7 +8,7 @@
 
 ### Fixed
 - Coroutines no longer fail silently or leave state stuck: a failure while a snap animates is logged and releases the object (and `TryOffer` reports the failure), a failure in the delayed eye-height placement is logged, and a listener that throws is logged without hiding the other listeners' events: the snap, placer and look-at events go through the shared `SafeEvents`, and the look-at sampling loop keeps sampling. The shared `GuardedCoroutine` helper reports a routine's exception once (including from routines it yields) instead of ending it unseen, and disposes the routine.
-- No endless recursion from listeners: a placed listener that calls `Place()` again is refused with a warning, and a look target accepts a gaze report made from inside its own events (for example looking away from its seen listener) and raises the resulting events afterwards instead of recursing.
+- No endless recursion from listeners: a placed listener that calls `Place()` again is refused with a warning, and a look target accepts a gaze report made from inside its own events (for example looking away from its seen listener) and raises the resulting events afterwards, in the order they happened, instead of recursing; if its events keep retriggering themselves it stops after eight rounds with an error.
 
 ## [1.1.0] - 2026-11-18
 
