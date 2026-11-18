@@ -43,6 +43,8 @@ namespace Framework
         private readonly List<LookTarget> _stopBuffer = new List<LookTarget>();
         private Coroutine _sampling;
         private bool _allTargetsFoundRaised;
+        private bool _anyTargetSeenInRun;
+        private bool _isSampling;
         private ReadOnlyCollection<LookTarget> _readOnlyTargets;
         private List<LookTarget> _readOnlyTargetsSource;
 
@@ -115,15 +117,21 @@ namespace Framework
 
             IsLooking = true;
             _allTargetsFoundRaised = false;
-            CollectDistinctTargetsInto(_stopBuffer);
-            foreach (var target in _stopBuffer)
+            _anyTargetSeenInRun = false;
+            foreach (var target in _targets)
             {
-                target.ResetLook();
+                if (target != null)
+                {
+                    target.ResetLook();
+                }
             }
 
             _sampling = StartCoroutine(SampleRepeatedly());
             _onLookingStarted.Invoke();
-            LookingStarted?.Invoke();
+            if (IsLooking)
+            {
+                LookingStarted?.Invoke();
+            }
         }
 
         public void StopLooking()
@@ -133,11 +141,24 @@ namespace Framework
 
         public void SampleOnce(float deltaSeconds)
         {
-            if (!IsLooking)
+            if (!IsLooking || _isSampling)
             {
                 return;
             }
 
+            _isSampling = true;
+            try
+            {
+                SampleTargets(deltaSeconds);
+            }
+            finally
+            {
+                _isSampling = false;
+            }
+        }
+
+        private void SampleTargets(float deltaSeconds)
+        {
             var eyes = _eyes != null ? _eyes : transform;
             CollectDistinctTargetsInto(_sampleBuffer);
             for (var index = 0; index < _sampleBuffer.Count; index++)
@@ -156,6 +177,7 @@ namespace Framework
                 var change = target.ReportGaze(IsLookedAt(eyes, target), deltaSeconds);
                 if ((change & LookChange.Seen) != 0)
                 {
+                    _anyTargetSeenInRun = true;
                     _onTargetFound.Invoke(target);
                     TargetFound?.Invoke(target);
                 }
@@ -169,7 +191,8 @@ namespace Framework
             CollectDistinctTargetsInto(_sampleBuffer);
             var seenCount = CountSeen(_sampleBuffer);
             RaiseAllTargetsFoundOnce(seenCount, _sampleBuffer.Count);
-            if (IsLooking && LookStopRules.ShouldStop(_stopRule, seenCount, _sampleBuffer.Count))
+            var seenForStopRule = _stopRule == LookStopRule.WhenAnyTargetIsSeen && _anyTargetSeenInRun ? Math.Max(1, seenCount) : seenCount;
+            if (IsLooking && LookStopRules.ShouldStop(_stopRule, seenForStopRule, _sampleBuffer.Count))
             {
                 Stop(LookStopRules.ReasonFor(_stopRule));
             }
@@ -288,12 +311,7 @@ namespace Framework
             }
 
             var blocked = Physics.Raycast(eyePosition, toAim / distance, out var hit, rayDistance, _blockingLayers, _triggerInteraction);
-            return !blocked || IsPartOfTarget(hit.collider.transform, target.transform);
-        }
-
-        private static bool IsPartOfTarget(Transform hitTransform, Transform targetTransform)
-        {
-            return hitTransform.IsChildOf(targetTransform) || targetTransform.IsChildOf(hitTransform);
+            return !blocked || target.OwnsCollider(hit.collider);
         }
     }
 }

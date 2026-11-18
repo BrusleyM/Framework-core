@@ -8,6 +8,8 @@ namespace Framework
     {
         [SerializeField]
         private Transform _aimPoint;
+        [SerializeField]
+        private Collider[] _extraColliders = new Collider[0];
         [SerializeField, Min(0f)]
         private float _dwellSeconds;
         [SerializeField]
@@ -42,6 +44,12 @@ namespace Framework
                 _dwell.RequiredSeconds = _dwellSeconds;
                 return _dwell;
             }
+        }
+
+        public bool OwnsCollider(Collider collider)
+        {
+            return collider != null
+                && (collider.transform.IsChildOf(transform) || Array.IndexOf(_extraColliders, collider) >= 0);
         }
 
         public LookChange ReportGaze(bool isLookedAt, float deltaSeconds)
