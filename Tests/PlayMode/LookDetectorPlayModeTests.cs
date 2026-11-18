@@ -611,6 +611,46 @@ namespace Framework.Tests
         }
 
         [UnityTest]
+        public IEnumerator A_look_target_listener_that_reports_gaze_again_does_not_recurse()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            var started = 0;
+            _ahead.OnLookStarted.AddListener(() =>
+            {
+                started++;
+                _ahead.ReportGaze(true, StepSeconds);
+            });
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.That(started, Is.EqualTo(1));
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator A_listener_that_throws_does_not_stop_the_sampling_loop()
+        {
+            SetPrivate(_detector, "_sampleIntervalSeconds", 0.03f);
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            SetPrivate(_detector, "_maxAngleDegrees", 60f);
+            var side = CreateTarget("side", new Vector3(2f, 0f, 4f));
+            SetTargets(_ahead, side);
+            Physics.SyncTransforms();
+            _ahead.OnSeen.AddListener(() => throw new System.InvalidOperationException("listener failed"));
+            yield return null;
+            LogAssert.ignoreFailingMessages = true;
+            _detector.StartLooking();
+            yield return new WaitForSecondsRealtime(0.4f);
+            LogAssert.ignoreFailingMessages = false;
+
+            Assert.That(side.IsSeen, Is.True);
+            Assert.That(_detector.IsLooking, Is.True);
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
         public IEnumerator Sampling_allocates_no_managed_memory()
         {
             SetPrivate(_detector, "_stopRule", LookStopRule.Never);

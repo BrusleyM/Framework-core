@@ -235,6 +235,39 @@ namespace Framework.Tests
             Assert.That(body.isKinematic, Is.True);
         }
 
+        [UnityTest]
+        public IEnumerator A_failure_while_animating_logs_the_exception_and_releases_the_object()
+        {
+            var body = _snappableObject.AddComponent<Rigidbody>();
+            SetPrivate(_point, "_easing", null);
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("NullReferenceException"));
+
+            _point.TryOffer(_snappable);
+            yield return null;
+            yield return null;
+
+            Assert.That(_point.IsOccupied, Is.False);
+            Assert.That(_snappable.IsSnapped, Is.False);
+            Assert.That(body.isKinematic, Is.False);
+            Assert.That(_snappedCount, Is.EqualTo(0));
+            Assert.That(_releasedCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator A_listener_that_fails_when_the_snap_completes_does_not_undo_the_snap()
+        {
+            SetPrivate(_point, "_snapDurationSeconds", 0.1f);
+            _point.OnSnapped.AddListener(_ => throw new System.InvalidOperationException("listener failed"));
+            LogAssert.ignoreFailingMessages = true;
+
+            _point.TryOffer(_snappable);
+            yield return new WaitForSecondsRealtime(0.5f);
+            LogAssert.ignoreFailingMessages = false;
+
+            Assert.That(_point.IsOccupied, Is.True);
+            Assert.That(_snappableObject.transform.position, Is.EqualTo(_pointObject.transform.position));
+        }
+
         private static void SetPrivate(object target, string fieldName, object value)
         {
             var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);

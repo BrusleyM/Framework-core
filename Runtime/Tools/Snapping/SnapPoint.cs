@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -20,6 +21,7 @@ namespace Framework
         private UnityEvent<Snappable> _onReleased = new UnityEvent<Snappable>();
 
         private Coroutine _snapRoutine;
+        private bool _isAnimating;
         private Pose _snapStartPose;
 
         public UnityEvent<Snappable> OnSnapped => _onSnapped;
@@ -51,7 +53,9 @@ namespace Framework
             }
             else
             {
-                _snapRoutine = StartCoroutine(AnimateSnap(candidate));
+                _isAnimating = true;
+                var routine = StartCoroutine(GuardedCoroutine.Run(AnimateSnap(candidate), AbortAnimatedSnap));
+                _snapRoutine = _isAnimating ? routine : null;
             }
             return true;
         }
@@ -83,7 +87,7 @@ namespace Framework
 
         private void OnDisable()
         {
-            if (_snapRoutine != null)
+            if (_isAnimating)
             {
                 Release();
             }
@@ -100,12 +104,23 @@ namespace Framework
                 elapsed += _ignoreTimeScale ? Time.unscaledDeltaTime : Time.deltaTime;
                 blend = BlendTowardsThisPoint();
             }
+            _isAnimating = false;
             _snapRoutine = null;
             CompleteSnap(snapped);
         }
 
+        private void AbortAnimatedSnap(Exception failure)
+        {
+            Debug.LogException(failure, this);
+            if (_isAnimating)
+            {
+                Release();
+            }
+        }
+
         private void StopAnimating()
         {
+            _isAnimating = false;
             if (_snapRoutine != null)
             {
                 StopCoroutine(_snapRoutine);

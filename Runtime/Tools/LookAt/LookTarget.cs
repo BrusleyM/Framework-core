@@ -20,6 +20,7 @@ namespace Framework
         private UnityEvent _onSeen = new UnityEvent();
 
         private LookDwell _dwell;
+        private bool _isReporting;
 
         public UnityEvent OnLookStarted => _onLookStarted;
         public UnityEvent OnLookEnded => _onLookEnded;
@@ -54,7 +55,26 @@ namespace Framework
 
         public LookChange ReportGaze(bool isLookedAt, float deltaSeconds)
         {
+            if (_isReporting)
+            {
+                return LookChange.None;
+            }
+
             var change = Dwell.Update(isLookedAt, deltaSeconds);
+            _isReporting = true;
+            try
+            {
+                RaiseEvents(change);
+            }
+            finally
+            {
+                _isReporting = false;
+            }
+            return change;
+        }
+
+        private void RaiseEvents(LookChange change)
+        {
             if ((change & LookChange.Started) != 0)
             {
                 _onLookStarted.Invoke();
@@ -70,7 +90,6 @@ namespace Framework
                 _onLookEnded.Invoke();
                 LookEnded?.Invoke();
             }
-            return change;
         }
 
         public void ResetLook()

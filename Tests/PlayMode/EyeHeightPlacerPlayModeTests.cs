@@ -83,6 +83,25 @@ namespace Framework.Tests
             Assert.That(_targetObject.transform.position.y, Is.EqualTo(1.2f).Within(0.0001f));
         }
 
+        [UnityTest]
+        public IEnumerator A_placed_listener_that_places_again_does_not_recurse()
+        {
+            SetPrivate("_placeOnEnable", false);
+            _targetObject.SetActive(true);
+            yield return null;
+            var placedCount = 0;
+            _placer.OnPlaced.AddListener(() =>
+            {
+                placedCount++;
+                _placer.Place();
+            });
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("already running"));
+
+            _placer.Place();
+
+            Assert.That(placedCount, Is.EqualTo(1));
+        }
+
         private void SetPrivate(string fieldName, object value)
         {
             var field = typeof(EyeHeightPlacer).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);

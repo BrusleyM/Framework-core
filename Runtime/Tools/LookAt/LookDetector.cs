@@ -223,7 +223,14 @@ namespace Framework
                 var now = Time.unscaledTime;
                 var elapsed = LookSampling.ClampedDelta(now - lastSampleTime, _sampleIntervalSeconds);
                 lastSampleTime = now;
-                SampleOnce(elapsed);
+                try
+                {
+                    SampleOnce(elapsed);
+                }
+                catch (Exception failure)
+                {
+                    Debug.LogException(failure, this);
+                }
             }
         }
 
