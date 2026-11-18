@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- `EyeHeightPlacer`: puts a target (or its own object) at the height of the user's eyes, a set distance in front of them, optionally turned to face along their view direction. Call `Place()` or `TryPlace()` from code or a UnityEvent, or tick Place On Enable. It reads the eyes from an assigned transform or the main camera, so it works in VR and non-VR apps and can be called again for a seated or standing user. The math is in the pure `EyeHeightPlacement` class. Looking up or down does not tilt the placement: only the direction along the floor is used.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added
