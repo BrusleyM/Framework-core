@@ -1,6 +1,6 @@
 {
     "name": "com.vishnu.framework.core",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "displayName": "Framework Core",
     "description": "Core building blocks for Unity guided experiences: check points, object outlines and scene tools.",
     "unity": "2022.3",
