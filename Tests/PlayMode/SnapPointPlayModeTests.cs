@@ -197,7 +197,6 @@ namespace Framework.Tests
             contact.SendMessage("OnTriggerEnter", touching);
 
             Assert.That(_point.Occupant, Is.SameAs(_snappable));
-            Assert.That(body.isKinematic, Is.True);
         }
 
         [UnityTest]
@@ -233,6 +232,7 @@ namespace Framework.Tests
             }
 
             Assert.That(_point.Occupant, Is.SameAs(_snappable));
+            Assert.That(body.isKinematic, Is.True);
         }
 
         private static void SetPrivate(object target, string fieldName, object value)
