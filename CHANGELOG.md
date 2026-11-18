@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- `Outline.OutlineActive` is created with the component, so enabling an outline no longer throws on an `Outline` added from code.
+
 ## [1.0.0] - 2026-11-18
 
 ### Changed
