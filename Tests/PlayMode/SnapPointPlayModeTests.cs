@@ -197,6 +197,7 @@ namespace Framework.Tests
             contact.SendMessage("OnTriggerEnter", touching);
 
             Assert.That(_point.Occupant, Is.SameAs(_snappable));
+            Assert.That(body.isKinematic, Is.True);
         }
 
         [UnityTest]
