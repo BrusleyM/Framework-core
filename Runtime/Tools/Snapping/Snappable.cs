@@ -52,13 +52,16 @@ namespace Framework
 
         private void ReleaseBody()
         {
-            if (_body == null || !_bodyIsHeld)
+            var bodyToRestore = _body;
+            var wasHeld = _bodyIsHeld;
+            _body = null;
+            _bodyIsHeld = false;
+            if (!wasHeld || bodyToRestore == null)
             {
                 return;
             }
-            _body.isKinematic = _bodyWasKinematic;
-            _body.interpolation = _bodyInterpolation;
-            _bodyIsHeld = false;
+            bodyToRestore.isKinematic = _bodyWasKinematic;
+            bodyToRestore.interpolation = _bodyInterpolation;
         }
     }
 }

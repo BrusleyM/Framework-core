@@ -213,6 +213,20 @@ namespace Framework.Tests
             Assert.That(body.interpolation, Is.EqualTo(RigidbodyInterpolation.Interpolate));
         }
 
+        [Test]
+        public void A_replacement_rigidbody_is_held_on_the_next_snap_after_the_old_one_was_destroyed_while_snapped()
+        {
+            var original = _snappableObject.AddComponent<Rigidbody>();
+            _point.TryOffer(_snappable);
+            Object.DestroyImmediate(original);
+            _point.Release();
+            var replacement = _snappableObject.AddComponent<Rigidbody>();
+
+            _point.TryOffer(_snappable);
+
+            Assert.That(replacement.isKinematic, Is.True);
+        }
+
         private SnapPoint CreateSecondPoint()
         {
             var secondObject = new GameObject("second point");

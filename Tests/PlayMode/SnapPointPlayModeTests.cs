@@ -13,6 +13,7 @@ namespace Framework.Tests
 
         private GameObject _pointObject;
         private GameObject _snappableObject;
+        private GameObject _lonely;
         private SnapKey _key;
         private SnapPoint _point;
         private Snappable _snappable;
@@ -48,6 +49,7 @@ namespace Framework.Tests
             }
             Object.Destroy(_pointObject);
             Object.Destroy(_snappableObject);
+            Object.Destroy(_lonely);
             Object.Destroy(_key);
         }
 
@@ -200,14 +202,36 @@ namespace Framework.Tests
         [UnityTest]
         public IEnumerator A_contact_component_without_a_point_ignores_the_contact()
         {
-            var lonely = new GameObject("lonely");
-            lonely.AddComponent<BoxCollider>();
-            var contact = lonely.AddComponent<SnapOnTriggerEnter>();
+            _lonely = new GameObject("lonely");
+            _lonely.AddComponent<BoxCollider>();
+            var contact = _lonely.AddComponent<SnapOnTriggerEnter>();
             var touching = _snappableObject.AddComponent<BoxCollider>();
             yield return null;
 
             Assert.DoesNotThrow(() => contact.SendMessage("OnTriggerEnter", touching));
-            Object.Destroy(lonely);
+        }
+
+        [UnityTest]
+        public IEnumerator A_physical_collision_snaps_the_object_that_hit_the_point()
+        {
+            SetPrivate(_point, "_snapDurationSeconds", 0f);
+            _pointObject.transform.position = Vector3.zero;
+            _pointObject.AddComponent<BoxCollider>();
+            _pointObject.AddComponent<SnapOnCollisionEnter>();
+            _snappableObject.transform.position = new Vector3(0f, 3f, 0f);
+            _snappableObject.AddComponent<BoxCollider>();
+            var body = _snappableObject.AddComponent<Rigidbody>();
+            body.useGravity = false;
+            yield return null;
+
+            body.AddForce(Vector3.down * 6f, ForceMode.VelocityChange);
+            var deadline = Time.realtimeSinceStartup + 3f;
+            while (!_point.IsOccupied && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            Assert.That(_point.Occupant, Is.SameAs(_snappable));
         }
 
         private static void SetPrivate(object target, string fieldName, object value)
