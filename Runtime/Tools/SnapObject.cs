@@ -3,6 +3,7 @@ using UnityEngine.Events;
 
 namespace Framework
 {
+    [System.Obsolete("Use SnapPoint with Snappable and SnapKey instead.")]
     public class SnapObject : MonoBehaviour
     {
         [SerializeField]
