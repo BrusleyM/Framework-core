@@ -9,6 +9,7 @@ namespace Framework
 
         private Rigidbody _body;
         private bool _bodyWasKinematic;
+        private RigidbodyInterpolation _bodyInterpolation;
         private bool _bodyIsHeld;
 
         public SnapKey Key => _key;
@@ -43,6 +44,8 @@ namespace Framework
                 return;
             }
             _bodyWasKinematic = _body.isKinematic;
+            _bodyInterpolation = _body.interpolation;
+            _body.interpolation = RigidbodyInterpolation.None;
             _body.isKinematic = true;
             _bodyIsHeld = true;
         }
@@ -54,6 +57,7 @@ namespace Framework
                 return;
             }
             _body.isKinematic = _bodyWasKinematic;
+            _body.interpolation = _bodyInterpolation;
             _bodyIsHeld = false;
         }
     }

@@ -199,6 +199,20 @@ namespace Framework.Tests
             Assert.That(body.isKinematic, Is.True);
         }
 
+        [Test]
+        public void A_rigidbody_has_interpolation_off_while_snapped_and_gets_it_back_on_release()
+        {
+            var body = _snappableObject.AddComponent<Rigidbody>();
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+
+            _point.TryOffer(_snappable);
+            var interpolationWhileSnapped = body.interpolation;
+            _point.Release();
+
+            Assert.That(interpolationWhileSnapped, Is.EqualTo(RigidbodyInterpolation.None));
+            Assert.That(body.interpolation, Is.EqualTo(RigidbodyInterpolation.Interpolate));
+        }
+
         private SnapPoint CreateSecondPoint()
         {
             var secondObject = new GameObject("second point");
