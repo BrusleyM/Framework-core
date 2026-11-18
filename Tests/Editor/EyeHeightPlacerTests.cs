@@ -123,6 +123,39 @@ namespace Framework.Tests
         }
 
         [Test]
+        public void A_target_that_is_a_parent_of_the_eyes_is_refused_and_left_alone()
+        {
+            var rig = Create("rig");
+            rig.transform.position = new Vector3(2f, 0f, 2f);
+            _eyesObject.transform.SetParent(rig.transform, true);
+            AssignObject("_target", rig.transform);
+
+            var placed = _placer.TryPlace();
+
+            Assert.That(placed, Is.False);
+            Assert.That(rig.transform.position, Is.EqualTo(new Vector3(2f, 0f, 2f)).Using(Vector3EqualityComparer.Instance));
+        }
+
+        [Test]
+        public void The_warning_for_missing_eyes_names_the_missing_eyes()
+        {
+            AssignObject("_eyes", null);
+            HideEveryMainCamera();
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("no eyes are assigned"));
+
+            _placer.Place();
+        }
+
+        [Test]
+        public void The_warning_for_a_target_related_to_the_eyes_names_that_cause()
+        {
+            AssignObject("_target", _eyesObject.transform);
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("one of their ancestors"));
+
+            _placer.Place();
+        }
+
+        [Test]
         public void The_eyes_themselves_are_refused_as_the_target()
         {
             AssignObject("_target", _eyesObject.transform);

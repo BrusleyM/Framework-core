@@ -29,17 +29,23 @@ namespace Framework
 
         public void Place()
         {
-            if (!TryPlace())
+            if (!TryPlace(out var failureReason))
             {
-                Debug.LogWarning("EyeHeightPlacer could not place the target: assign the eyes or have an active main camera, and do not use the eyes or one of their children as the target.", this);
+                Debug.LogWarning($"EyeHeightPlacer could not place the target: {failureReason}.", this);
             }
         }
 
         public bool TryPlace()
         {
+            return TryPlace(out _);
+        }
+
+        private bool TryPlace(out string failureReason)
+        {
             var eyes = ResolveEyes();
             var target = _target != null ? _target : transform;
-            if (eyes == null || target.IsChildOf(eyes))
+            failureReason = ReasonItCannotPlace(eyes, target);
+            if (failureReason != null)
             {
                 return false;
             }
@@ -87,6 +93,21 @@ namespace Framework
             yield return new WaitForSecondsRealtime(_placeOnEnableDelaySeconds);
             _delayedPlacement = null;
             Place();
+        }
+
+        private static string ReasonItCannotPlace(Transform eyes, Transform target)
+        {
+            if (eyes == null)
+            {
+                return "no eyes are assigned and there is no active main camera";
+            }
+
+            if (target.IsChildOf(eyes) || eyes.IsChildOf(target))
+            {
+                return "the target is the eyes, one of their children or one of their ancestors";
+            }
+
+            return null;
         }
 
         private Transform ResolveEyes()
