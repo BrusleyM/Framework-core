@@ -11,6 +11,8 @@ namespace Framework
         [SerializeField]
         private float _snapDurationSeconds = 0.25f;
         [SerializeField]
+        private bool _ignoreTimeScale;
+        [SerializeField]
         private AnimationCurve _easing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         [SerializeField]
         private UnityEvent<Snappable> _onSnapped = new UnityEvent<Snappable>();
@@ -18,6 +20,7 @@ namespace Framework
         private UnityEvent<Snappable> _onReleased = new UnityEvent<Snappable>();
 
         private Coroutine _snapRoutine;
+        private Pose _snapStartPose;
 
         public UnityEvent<Snappable> OnSnapped => _onSnapped;
         public UnityEvent<Snappable> OnReleased => _onReleased;
@@ -28,6 +31,7 @@ namespace Framework
         {
             return !IsOccupied
                 && candidate != null
+                && !candidate.IsSnapped
                 && _acceptedKey != null
                 && candidate.Key == _acceptedKey;
         }
@@ -40,19 +44,22 @@ namespace Framework
             }
             Occupant = candidate;
             candidate.BeginSnapTo(this);
-            var blend = new SnapBlend(
-                new Pose(candidate.transform.position, candidate.transform.rotation),
-                new Pose(transform.position, transform.rotation),
-                _snapDurationSeconds);
-            if (blend.IsCompleteAt(0f) || !isActiveAndEnabled)
+            _snapStartPose = new Pose(candidate.transform.position, candidate.transform.rotation);
+            if (_snapDurationSeconds <= 0f || !isActiveAndEnabled)
             {
-                CompleteSnap(candidate, blend);
+                CompleteSnap(candidate);
             }
             else
             {
-                _snapRoutine = StartCoroutine(AnimateSnap(candidate, blend));
+                _snapRoutine = StartCoroutine(AnimateSnap(candidate));
             }
             return true;
+        }
+
+        public bool TryOfferFrom(Collider other)
+        {
+            var candidate = other != null ? other.GetComponentInParent<Snappable>() : null;
+            return TryOffer(candidate);
         }
 
         public bool Release()
@@ -62,33 +69,53 @@ namespace Framework
                 return false;
             }
             var released = Occupant;
-            if (_snapRoutine != null)
-            {
-                StopCoroutine(_snapRoutine);
-                _snapRoutine = null;
-            }
+            StopAnimating();
             Occupant = null;
             released.EndSnap();
             _onReleased?.Invoke(released);
             return true;
         }
 
-        private IEnumerator AnimateSnap(Snappable snapped, SnapBlend blend)
+        private void OnDisable()
+        {
+            if (_snapRoutine != null)
+            {
+                Release();
+            }
+        }
+
+        private IEnumerator AnimateSnap(Snappable snapped)
         {
             var elapsed = 0f;
+            var blend = BlendTowardsThisPoint();
             while (!blend.IsCompleteAt(elapsed))
             {
                 ApplyPose(snapped, blend, _easing.Evaluate(blend.ProgressAt(elapsed)));
                 yield return null;
-                elapsed += Time.deltaTime;
+                elapsed += _ignoreTimeScale ? Time.unscaledDeltaTime : Time.deltaTime;
+                blend = BlendTowardsThisPoint();
             }
             _snapRoutine = null;
-            CompleteSnap(snapped, blend);
+            CompleteSnap(snapped);
         }
 
-        private void CompleteSnap(Snappable snapped, SnapBlend blend)
+        private void StopAnimating()
         {
-            ApplyPose(snapped, blend, 1f);
+            if (_snapRoutine != null)
+            {
+                StopCoroutine(_snapRoutine);
+                _snapRoutine = null;
+            }
+        }
+
+        private SnapBlend BlendTowardsThisPoint()
+        {
+            return new SnapBlend(_snapStartPose, new Pose(transform.position, transform.rotation), _snapDurationSeconds);
+        }
+
+        private void CompleteSnap(Snappable snapped)
+        {
+            ApplyPose(snapped, BlendTowardsThisPoint(), 1f);
             _onSnapped?.Invoke(snapped);
         }
 

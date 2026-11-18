@@ -15,6 +15,14 @@ namespace Framework
         public SnapPoint CurrentPoint { get; private set; }
         public bool IsSnapped => CurrentPoint != null;
 
+        private void OnDestroy()
+        {
+            if (CurrentPoint != null)
+            {
+                CurrentPoint.Release();
+            }
+        }
+
         internal void BeginSnapTo(SnapPoint point)
         {
             CurrentPoint = point;

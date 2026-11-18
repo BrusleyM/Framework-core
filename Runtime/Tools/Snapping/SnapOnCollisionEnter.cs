@@ -8,17 +8,19 @@ namespace Framework
         [SerializeField]
         private SnapPoint _snapPoint;
 
-        private void Reset()
+        private void Awake()
         {
-            _snapPoint = GetComponent<SnapPoint>();
+            if (_snapPoint == null)
+            {
+                _snapPoint = GetComponent<SnapPoint>();
+            }
         }
 
         private void OnCollisionEnter(Collision collision)
         {
-            var candidate = collision.collider.GetComponentInParent<Snappable>();
-            if (candidate != null)
+            if (_snapPoint != null)
             {
-                _snapPoint.TryOffer(candidate);
+                _snapPoint.TryOfferFrom(collision.collider);
             }
         }
     }

@@ -59,5 +59,15 @@ namespace Framework.Tests
 
             Assert.That(Quaternion.Angle(pose.rotation, End.rotation), Is.LessThan(0.01f));
         }
+
+        [Test]
+        public void Half_eased_progress_sits_halfway_between_start_and_end_rotations()
+        {
+            var blend = new SnapBlend(Start, End, 1f);
+
+            var pose = blend.PoseAtEasedProgress(0.5f);
+
+            Assert.That(Quaternion.Angle(pose.rotation, Quaternion.Euler(0f, 45f, 0f)), Is.LessThan(0.01f));
+        }
     }
 }
