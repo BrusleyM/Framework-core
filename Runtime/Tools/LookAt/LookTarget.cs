@@ -24,6 +24,7 @@ namespace Framework
 
         private LookDwell _dwell;
         private bool _isReporting;
+        private bool _resetDuringReport;
         private readonly Queue<LookChange> _pendingChanges = new Queue<LookChange>();
 
         public UnityEvent OnLookStarted => _onLookStarted;
@@ -70,6 +71,7 @@ namespace Framework
             }
 
             _isReporting = true;
+            _resetDuringReport = false;
             try
             {
                 RaiseInOrder(change);
@@ -77,6 +79,7 @@ namespace Framework
             finally
             {
                 _isReporting = false;
+                _resetDuringReport = false;
                 _pendingChanges.Clear();
             }
             return change;
@@ -101,17 +104,18 @@ namespace Framework
 
         private void RaiseEvents(LookChange change)
         {
+            _resetDuringReport = false;
             if ((change & LookChange.Started) != 0)
             {
                 SafeEvents.Invoke(_onLookStarted, this);
                 SafeEvents.Invoke(LookStarted, this);
             }
-            if ((change & LookChange.Seen) != 0)
+            if ((change & LookChange.Seen) != 0 && !_resetDuringReport)
             {
                 SafeEvents.Invoke(_onSeen, this);
                 SafeEvents.Invoke(Seen, this);
             }
-            if ((change & LookChange.Ended) != 0)
+            if ((change & LookChange.Ended) != 0 && !_resetDuringReport)
             {
                 SafeEvents.Invoke(_onLookEnded, this);
                 SafeEvents.Invoke(LookEnded, this);
@@ -122,6 +126,7 @@ namespace Framework
         {
             Dwell.Reset();
             _pendingChanges.Clear();
+            _resetDuringReport = _isReporting;
         }
     }
 }

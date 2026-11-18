@@ -138,6 +138,17 @@ namespace Framework.Tests
         }
 
         [Test]
+        public void Resetting_the_look_from_the_started_listener_stops_the_seen_event_of_that_same_change()
+        {
+            _target.OnLookStarted.AddListener(() => _target.ResetLook());
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_seen, Is.EqualTo(0));
+            Assert.That(_target.IsSeen, Is.False);
+        }
+
+        [Test]
         public void The_aim_point_defaults_to_the_target_transform()
         {
             Assert.That(_target.AimPoint, Is.SameAs(_host.transform));
