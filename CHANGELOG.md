@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- `EyeHeightPlacer`: puts a target (or its own object) at the height of the user's eyes, a set distance in front of them, with an optional height offset. Facing is a choice: keep the rotation, point the target's forward along the view direction (the convention for UI canvases and quads), or turn it towards the user. Call `Place()` or `TryPlace()` from code or a UnityEvent, or tick Place On Enable with an optional delay in seconds. The eyes are an assigned transform or, when none is assigned, the main camera looked up at the moment of placement. It works in VR and non-VR apps, but an XR headset may not have tracked when the scene loads: use the delay, or call `Place()` from an event once tracking is live. Only the direction along the floor (world up) is used, so looking up or down does not tilt the placement. A target that is the eyes, one of their children or one of their ancestors (such as the rig, including the placer's own object when no target is assigned) is refused, since head movement would drag it away again or the user would be moved; `Place()` logs a warning that names the reason when it cannot place. The math is in the pure `EyeHeightPlacement` class.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added
