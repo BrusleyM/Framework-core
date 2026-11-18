@@ -9,17 +9,27 @@ namespace Framework
             Vector3 eyeForward,
             float distanceInFront,
             float heightOffset,
-            bool alignWithViewDirection,
+            PlacementFacing facing,
             Quaternion currentRotation)
         {
             var viewDirectionOnFloorPlane = ViewDirectionOnFloorPlane(eyeForward);
             var position = eyePosition
                 + Vector3.up * heightOffset
                 + viewDirectionOnFloorPlane * distanceInFront;
-            var rotation = alignWithViewDirection
-                ? Quaternion.LookRotation(viewDirectionOnFloorPlane, Vector3.up)
-                : currentRotation;
-            return new Pose(position, rotation);
+            return new Pose(position, RotationFor(facing, viewDirectionOnFloorPlane, currentRotation));
+        }
+
+        private static Quaternion RotationFor(PlacementFacing facing, Vector3 viewDirectionOnFloorPlane, Quaternion currentRotation)
+        {
+            switch (facing)
+            {
+                case PlacementFacing.SameAsViewDirection:
+                    return Quaternion.LookRotation(viewDirectionOnFloorPlane, Vector3.up);
+                case PlacementFacing.TowardsUser:
+                    return Quaternion.LookRotation(-viewDirectionOnFloorPlane, Vector3.up);
+                default:
+                    return currentRotation;
+            }
         }
 
         private static Vector3 ViewDirectionOnFloorPlane(Vector3 eyeForward)

@@ -6,9 +6,9 @@ namespace Framework.Tests
 {
     public class EyeHeightPlacementTests
     {
-        private static Pose Place(Vector3 eyePosition, Vector3 eyeForward, float distance = 1f, float heightOffset = 0f, bool align = true)
+        private static Pose Place(Vector3 eyePosition, Vector3 eyeForward, float distance = 1f, float heightOffset = 0f, PlacementFacing facing = PlacementFacing.SameAsViewDirection)
         {
-            return EyeHeightPlacement.InFrontOfEyes(eyePosition, eyeForward, distance, heightOffset, align, Quaternion.identity);
+            return EyeHeightPlacement.InFrontOfEyes(eyePosition, eyeForward, distance, heightOffset, facing, Quaternion.identity);
         }
 
         [Test]
@@ -76,9 +76,30 @@ namespace Framework.Tests
         {
             var current = Quaternion.Euler(10f, 20f, 30f);
 
-            var pose = EyeHeightPlacement.InFrontOfEyes(Vector3.zero, Vector3.right, 1f, 0f, false, current);
+            var pose = EyeHeightPlacement.InFrontOfEyes(new Vector3(1f, 2f, 3f), Vector3.right, 1f, 0f, PlacementFacing.KeepRotation, current);
 
             Assert.That(Quaternion.Angle(pose.rotation, current), Is.LessThan(0.01f));
+            Assert.That(pose.position, Is.EqualTo(new Vector3(2f, 2f, 3f)).Using(Vector3EqualityComparer.Instance));
+        }
+
+        [Test]
+        public void Facing_towards_the_user_points_the_pose_forward_back_at_the_eyes()
+        {
+            var pose = Place(Vector3.zero, Vector3.forward, facing: PlacementFacing.TowardsUser);
+
+            var forward = pose.rotation * Vector3.forward;
+
+            Assert.That(Vector3.Dot(forward, Vector3.back), Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        [Test]
+        public void A_rolled_head_with_a_horizontal_view_places_the_pose_straight_ahead()
+        {
+            var rolledForward = (Quaternion.Euler(0f, 0f, 35f) * Vector3.forward);
+
+            var pose = Place(new Vector3(0f, 1.6f, 0f), rolledForward, distance: 2f);
+
+            Assert.That(pose.position, Is.EqualTo(new Vector3(0f, 1.6f, 2f)).Using(Vector3EqualityComparer.Instance));
         }
     }
 }

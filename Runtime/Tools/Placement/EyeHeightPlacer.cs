@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -9,39 +10,46 @@ namespace Framework
         private Transform _eyes;
         [SerializeField]
         private Transform _target;
-        [SerializeField]
+        [SerializeField, Min(0f)]
         private float _distanceInFront = 1f;
         [SerializeField]
         private float _heightOffset;
         [SerializeField]
-        private bool _alignWithViewDirection = true;
+        private PlacementFacing _facing = PlacementFacing.SameAsViewDirection;
         [SerializeField]
         private bool _placeOnEnable;
+        [SerializeField, Min(0f)]
+        private float _placeOnEnableDelaySeconds;
         [SerializeField]
         private UnityEvent _onPlaced = new UnityEvent();
+
+        private Coroutine _delayedPlacement;
 
         public UnityEvent OnPlaced => _onPlaced;
 
         public void Place()
         {
-            TryPlace();
+            if (!TryPlace())
+            {
+                Debug.LogWarning("EyeHeightPlacer could not place the target: assign the eyes or have an active main camera, and do not use the eyes or one of their children as the target.", this);
+            }
         }
 
         public bool TryPlace()
         {
             var eyes = ResolveEyes();
-            if (eyes == null)
+            var target = _target != null ? _target : transform;
+            if (eyes == null || target.IsChildOf(eyes))
             {
                 return false;
             }
 
-            var target = _target != null ? _target : transform;
             var pose = EyeHeightPlacement.InFrontOfEyes(
                 eyes.position,
                 eyes.forward,
                 _distanceInFront,
                 _heightOffset,
-                _alignWithViewDirection,
+                _facing,
                 target.rotation);
             target.SetPositionAndRotation(pose.position, pose.rotation);
             _onPlaced.Invoke();
@@ -50,10 +58,35 @@ namespace Framework
 
         private void OnEnable()
         {
-            if (_placeOnEnable)
+            if (!_placeOnEnable)
             {
-                TryPlace();
+                return;
             }
+
+            if (_placeOnEnableDelaySeconds <= 0f)
+            {
+                Place();
+            }
+            else
+            {
+                _delayedPlacement = StartCoroutine(PlaceAfterDelay());
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (_delayedPlacement != null)
+            {
+                StopCoroutine(_delayedPlacement);
+                _delayedPlacement = null;
+            }
+        }
+
+        private IEnumerator PlaceAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(_placeOnEnableDelaySeconds);
+            _delayedPlacement = null;
+            Place();
         }
 
         private Transform ResolveEyes()

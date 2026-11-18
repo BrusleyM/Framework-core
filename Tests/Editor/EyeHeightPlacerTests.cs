@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools.Utils;
@@ -105,6 +106,53 @@ namespace Framework.Tests
             _placer.Place();
 
             Assert.That(_targetObject.transform.position.y, Is.EqualTo(1.1f).Within(0.0001f));
+        }
+
+        [Test]
+        public void A_target_that_is_a_child_of_the_eyes_is_refused_and_left_alone()
+        {
+            var panel = Create("panel");
+            panel.transform.SetParent(_eyesObject.transform, false);
+            panel.transform.localPosition = new Vector3(0f, 0f, 3f);
+            AssignObject("_target", panel.transform);
+
+            var placed = _placer.TryPlace();
+
+            Assert.That(placed, Is.False);
+            Assert.That(panel.transform.localPosition, Is.EqualTo(new Vector3(0f, 0f, 3f)).Using(Vector3EqualityComparer.Instance));
+        }
+
+        [Test]
+        public void The_eyes_themselves_are_refused_as_the_target()
+        {
+            AssignObject("_target", _eyesObject.transform);
+
+            Assert.That(_placer.TryPlace(), Is.False);
+        }
+
+        [Test]
+        public void A_target_parented_under_a_moved_rig_still_lands_in_front_of_the_eyes_in_world_space()
+        {
+            var rig = Create("rig");
+            rig.transform.position = new Vector3(10f, 0f, 10f);
+            rig.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            var panel = Create("panel");
+            panel.transform.SetParent(rig.transform, false);
+            AssignObject("_target", panel.transform);
+
+            _placer.Place();
+
+            Assert.That(panel.transform.position, Is.EqualTo(new Vector3(0f, 1.7f, 1f)).Using(Vector3EqualityComparer.Instance));
+        }
+
+        [Test]
+        public void Placing_with_nothing_to_place_against_logs_a_warning()
+        {
+            AssignObject("_eyes", null);
+            HideEveryMainCamera();
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("could not place"));
+
+            _placer.Place();
         }
 
         [Test]
