@@ -4,12 +4,18 @@ namespace Framework
 {
     public sealed class LookDwell
     {
-        private readonly float _requiredSeconds;
+        private float _requiredSeconds;
         private float _dwellSeconds;
 
         public LookDwell(float requiredSeconds)
         {
-            _requiredSeconds = Mathf.Max(0f, requiredSeconds);
+            RequiredSeconds = requiredSeconds;
+        }
+
+        public float RequiredSeconds
+        {
+            get => _requiredSeconds;
+            set => _requiredSeconds = Mathf.Max(0f, value);
         }
 
         public bool IsLooking { get; private set; }

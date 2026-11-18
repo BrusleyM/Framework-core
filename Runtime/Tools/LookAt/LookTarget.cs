@@ -31,7 +31,18 @@ namespace Framework
         public event Action LookEnded;
         public event Action Seen;
 
-        private LookDwell Dwell => _dwell ?? (_dwell = new LookDwell(_dwellSeconds));
+        private LookDwell Dwell
+        {
+            get
+            {
+                if (_dwell == null)
+                {
+                    _dwell = new LookDwell(_dwellSeconds);
+                }
+                _dwell.RequiredSeconds = _dwellSeconds;
+                return _dwell;
+            }
+        }
 
         public LookChange ReportGaze(bool isLookedAt, float deltaSeconds)
         {
@@ -57,11 +68,6 @@ namespace Framework
         public void ResetLook()
         {
             Dwell.Reset();
-        }
-
-        private void OnValidate()
-        {
-            _dwell = null;
         }
     }
 }

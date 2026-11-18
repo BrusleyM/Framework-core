@@ -9,24 +9,24 @@ namespace Framework.Tests
 {
     public class LookDetectorPlayModeTests
     {
-        private const float SampleSeconds = 0.03f;
-        private const float SettleSeconds = 0.4f;
+        private const float StepSeconds = 0.1f;
+        private const float ManualSamplingInterval = 1000f;
 
         private readonly List<GameObject> _created = new List<GameObject>();
+        private readonly List<LookStopReason> _stopReasons = new List<LookStopReason>();
         private GameObject _eyes;
         private LookDetector _detector;
         private LookTarget _ahead;
         private int _started;
         private int _foundCount;
         private int _allFoundCount;
-        private readonly List<LookStopReason> _stopReasons = new List<LookStopReason>();
 
         [SetUp]
         public void SetUp()
         {
             _eyes = Track(new GameObject("eyes"));
             _detector = _eyes.AddComponent<LookDetector>();
-            SetPrivate(_detector, "_sampleIntervalSeconds", SampleSeconds);
+            SetPrivate(_detector, "_sampleIntervalSeconds", ManualSamplingInterval);
             _ahead = CreateTarget("ahead", new Vector3(0f, 0f, 5f));
             SetTargets(_ahead);
             _started = 0;
@@ -55,12 +55,25 @@ namespace Framework.Tests
         }
 
         [UnityTest]
-        public IEnumerator Looking_at_a_clear_target_finds_it_and_stops_for_that_reason()
+        public IEnumerator The_real_time_sampling_loop_finds_a_clear_target_and_stops()
         {
+            SetPrivate(_detector, "_sampleIntervalSeconds", 0.03f);
             yield return null;
 
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            yield return new WaitForSecondsRealtime(0.6f);
+
+            Assert.That(_ahead.IsSeen, Is.True);
+            CollectionAssert.AreEqual(new[] { LookStopReason.AnyTargetSeen }, _stopReasons);
+        }
+
+        [UnityTest]
+        public IEnumerator Looking_at_a_clear_target_finds_it_and_stops_for_that_reason()
+        {
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_ahead.IsSeen, Is.True);
             Assert.That(_foundCount, Is.EqualTo(1));
@@ -73,9 +86,9 @@ namespace Framework.Tests
         {
             CreateWall(new Vector3(0f, 0f, 2.5f));
             yield return null;
-
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_ahead.IsSeen, Is.False);
             Assert.That(_detector.IsLooking, Is.True);
@@ -88,10 +101,25 @@ namespace Framework.Tests
             var wall = CreateWall(new Vector3(0f, 0f, 2.5f));
             yield return null;
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             Object.Destroy(wall);
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            yield return null;
+            Physics.SyncTransforms();
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.That(_ahead.IsSeen, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator A_collider_on_the_ignore_raycast_layer_does_not_block_the_look()
+        {
+            var wall = CreateWall(new Vector3(0f, 0f, 2.5f));
+            wall.layer = 2;
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_ahead.IsSeen, Is.True);
         }
@@ -102,9 +130,9 @@ namespace Framework.Tests
             _ahead.transform.position = new Vector3(5f, 0f, 1f);
             Physics.SyncTransforms();
             yield return null;
-
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_ahead.IsSeen, Is.False);
             _detector.StopLooking();
@@ -115,12 +143,49 @@ namespace Framework.Tests
         {
             SetPrivate(_detector, "_maxDistance", 3f);
             yield return null;
-
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_ahead.IsSeen, Is.False);
             _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator An_aim_point_on_a_wall_surface_is_not_blocked_by_that_wall()
+        {
+            _ahead.gameObject.SetActive(false);
+            var wall = CreateWall(new Vector3(0f, 0f, 5f));
+            var aim = Track(new GameObject("poster")).transform;
+            aim.position = new Vector3(0f, 0f, 4.9f);
+            var poster = aim.gameObject.AddComponent<LookTarget>();
+            SetTargets(poster);
+            Physics.SyncTransforms();
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.That(poster.IsSeen, Is.True);
+            Assert.That(wall, Is.Not.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator A_collider_on_a_parent_of_the_target_counts_as_the_target_not_a_blocker()
+        {
+            var parent = Track(GameObject.CreatePrimitive(PrimitiveType.Cube));
+            parent.transform.position = new Vector3(0f, 0f, 5f);
+            var child = Track(new GameObject("on the parent"));
+            child.transform.SetParent(parent.transform, true);
+            var target = child.AddComponent<LookTarget>();
+            SetTargets(target);
+            Physics.SyncTransforms();
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.That(target.IsSeen, Is.True);
         }
 
         [UnityTest]
@@ -129,10 +194,14 @@ namespace Framework.Tests
             SetPrivate(_ahead, "_dwellSeconds", 0.5f);
             yield return null;
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(0.15f);
+            _detector.SampleOnce(StepSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             _eyes.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-            yield return new WaitForSecondsRealtime(0.6f);
+            _detector.SampleOnce(StepSeconds);
+            _eyes.transform.rotation = Quaternion.identity;
+            _detector.SampleOnce(StepSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_ahead.IsSeen, Is.False);
             _detector.StopLooking();
@@ -141,11 +210,14 @@ namespace Framework.Tests
         [UnityTest]
         public IEnumerator Looking_for_the_whole_dwell_time_finds_the_target()
         {
-            SetPrivate(_ahead, "_dwellSeconds", 0.2f);
+            SetPrivate(_ahead, "_dwellSeconds", 0.3f);
             yield return null;
-
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(0.2f + SettleSeconds);
+
+            for (var step = 0; step < 5; step++)
+            {
+                _detector.SampleOnce(StepSeconds);
+            }
 
             Assert.That(_ahead.IsSeen, Is.True);
         }
@@ -159,12 +231,12 @@ namespace Framework.Tests
             Physics.SyncTransforms();
             yield return null;
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            _detector.SampleOnce(StepSeconds);
             var stillLookingWithOneMissing = _detector.IsLooking;
             var foundWithOneMissing = _foundCount;
 
             _eyes.transform.rotation = Quaternion.Euler(0f, 45f, 0f);
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(foundWithOneMissing, Is.EqualTo(1));
             Assert.That(stillLookingWithOneMissing, Is.True);
@@ -175,6 +247,142 @@ namespace Framework.Tests
         }
 
         [UnityTest]
+        public IEnumerator A_target_listed_twice_counts_once_so_the_all_rule_can_finish()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.WhenAllTargetsAreSeen);
+            SetTargets(_ahead, _ahead);
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+
+            CollectionAssert.AreEqual(new[] { LookStopReason.AllTargetsSeen }, _stopReasons);
+            Assert.That(_foundCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator A_target_listed_twice_fills_its_dwell_at_the_normal_speed()
+        {
+            SetPrivate(_ahead, "_dwellSeconds", 0.3f);
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            SetTargets(_ahead, _ahead);
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+            _detector.SampleOnce(StepSeconds);
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.That(_ahead.IsSeen, Is.False);
+            _detector.SampleOnce(StepSeconds);
+            Assert.That(_ahead.IsSeen, Is.True);
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator An_empty_slot_in_the_list_does_not_stop_the_all_rule_from_finishing()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.WhenAllTargetsAreSeen);
+            SetTargets(null, _ahead);
+            yield return null;
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+
+            CollectionAssert.AreEqual(new[] { LookStopReason.AllTargetsSeen }, _stopReasons);
+        }
+
+        [UnityTest]
+        public IEnumerator A_destroyed_target_does_not_stop_the_all_rule_from_finishing()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.WhenAllTargetsAreSeen);
+            var doomed = CreateTarget("doomed", new Vector3(0f, 0f, 6f));
+            SetTargets(_ahead, doomed);
+            yield return null;
+            _detector.StartLooking();
+            Object.Destroy(doomed.gameObject);
+            yield return null;
+
+            _detector.SampleOnce(StepSeconds);
+
+            CollectionAssert.AreEqual(new[] { LookStopReason.AllTargetsSeen }, _stopReasons);
+        }
+
+        [UnityTest]
+        public IEnumerator Removing_the_only_unseen_target_lets_the_all_rule_finish_on_the_next_sample()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.WhenAllTargetsAreSeen);
+            var hidden = CreateTarget("hidden", new Vector3(5f, 0f, 1f));
+            SetTargets(_ahead, hidden);
+            Physics.SyncTransforms();
+            yield return null;
+            _detector.StartLooking();
+            _detector.SampleOnce(StepSeconds);
+
+            _detector.RemoveTarget(hidden);
+            _detector.SampleOnce(StepSeconds);
+
+            CollectionAssert.AreEqual(new[] { LookStopReason.AllTargetsSeen }, _stopReasons);
+        }
+
+        [UnityTest]
+        public IEnumerator Stopping_from_a_found_listener_leaves_the_remaining_targets_untouched()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            SetPrivate(_detector, "_maxAngleDegrees", 60f);
+            var other = CreateTarget("other", new Vector3(2f, 0f, 4f));
+            var otherStarted = 0;
+            other.OnLookStarted.AddListener(() => otherStarted++);
+            SetTargets(_ahead, other);
+            Physics.SyncTransforms();
+            yield return null;
+            _detector.OnTargetFound.AddListener(_ => _detector.StopLooking());
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.That(otherStarted, Is.EqualTo(0));
+            Assert.That(other.IsSeen, Is.False);
+            Assert.That(_allFoundCount, Is.EqualTo(0));
+            CollectionAssert.AreEqual(new[] { LookStopReason.Requested }, _stopReasons);
+        }
+
+        [UnityTest]
+        public IEnumerator Removing_a_target_from_its_own_found_listener_does_not_skip_the_next_target()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            SetPrivate(_detector, "_maxAngleDegrees", 60f);
+            var other = CreateTarget("other", new Vector3(2f, 0f, 4f));
+            SetTargets(_ahead, other);
+            Physics.SyncTransforms();
+            yield return null;
+            _detector.OnTargetFound.AddListener(found => _detector.RemoveTarget(found));
+            _detector.StartLooking();
+
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.That(other.IsSeen, Is.True);
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator A_look_ended_listener_that_removes_a_target_does_not_break_stopping()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            SetPrivate(_detector, "_maxAngleDegrees", 60f);
+            var other = CreateTarget("other", new Vector3(2f, 0f, 4f));
+            SetTargets(_ahead, other);
+            Physics.SyncTransforms();
+            yield return null;
+            _ahead.OnLookEnded.AddListener(() => _detector.RemoveTarget(other));
+            _detector.StartLooking();
+            _detector.SampleOnce(StepSeconds);
+
+            Assert.DoesNotThrow(() => _detector.StopLooking());
+            CollectionAssert.AreEqual(new[] { LookStopReason.Requested }, _stopReasons);
+        }
+
+        [UnityTest]
         public IEnumerator Stopping_on_request_raises_the_stopped_event_and_ends_the_look_of_the_target_being_looked_at()
         {
             SetPrivate(_detector, "_stopRule", LookStopRule.Never);
@@ -182,7 +390,7 @@ namespace Framework.Tests
             _ahead.OnLookEnded.AddListener(() => ended++);
             yield return null;
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             _detector.StopLooking();
 
@@ -197,7 +405,6 @@ namespace Framework.Tests
             SetPrivate(_detector, "_stopRule", LookStopRule.Never);
             yield return null;
             _detector.StartLooking();
-            yield return null;
 
             _detector.enabled = false;
 
@@ -218,18 +425,95 @@ namespace Framework.Tests
         }
 
         [UnityTest]
+        public IEnumerator Starting_while_inactive_warns_and_does_not_leave_the_detector_stuck()
+        {
+            yield return null;
+            _eyes.SetActive(false);
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("cannot start looking"));
+
+            _detector.StartLooking();
+            var stuck = _detector.IsLooking;
+            _eyes.SetActive(true);
+            _detector.StartLooking();
+
+            Assert.That(stuck, Is.False);
+            Assert.That(_detector.IsLooking, Is.True);
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator Start_on_enable_starts_a_run_each_time_the_detector_is_enabled()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            SetPrivate(_detector, "_startOnEnable", true);
+            yield return null;
+
+            _detector.enabled = false;
+            _detector.enabled = true;
+
+            Assert.That(_started, Is.EqualTo(1));
+            Assert.That(_detector.IsLooking, Is.True);
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator Stopping_and_starting_again_from_the_started_listener_ends_with_a_running_detector()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            var restarts = 0;
+            _detector.OnLookingStarted.AddListener(() =>
+            {
+                if (restarts++ == 0)
+                {
+                    _detector.StopLooking();
+                    _detector.StartLooking();
+                }
+            });
+            yield return null;
+
+            Assert.DoesNotThrow(() => _detector.StartLooking());
+
+            Assert.That(_detector.IsLooking, Is.True);
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
         public IEnumerator A_target_added_while_looking_is_found()
         {
             SetPrivate(_detector, "_stopRule", LookStopRule.Never);
             SetTargets();
             yield return null;
             _detector.StartLooking();
-            yield return null;
 
             _detector.AddTarget(_ahead);
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_ahead.IsSeen, Is.True);
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator Adding_the_same_or_an_empty_target_is_refused()
+        {
+            yield return null;
+
+            Assert.That(_detector.AddTarget(_ahead), Is.False);
+            Assert.That(_detector.AddTarget(null), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator The_all_targets_found_event_is_raised_once_however_long_the_run_continues()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            yield return null;
+            _detector.StartLooking();
+
+            for (var step = 0; step < 5; step++)
+            {
+                _detector.SampleOnce(StepSeconds);
+            }
+
+            Assert.That(_allFoundCount, Is.EqualTo(1));
             _detector.StopLooking();
         }
 
@@ -238,10 +522,10 @@ namespace Framework.Tests
         {
             yield return null;
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(SettleSeconds);
+            _detector.SampleOnce(StepSeconds);
 
             Assert.That(_foundCount, Is.EqualTo(2));
         }
@@ -250,12 +534,12 @@ namespace Framework.Tests
         public IEnumerator Sampling_allocates_no_managed_memory()
         {
             SetPrivate(_detector, "_stopRule", LookStopRule.Never);
-            SetPrivate(_detector, "_sampleIntervalSeconds", 1000f);
+            _detector.OnTargetFound.AddListener(_ => { });
             yield return null;
             _detector.StartLooking();
-            _detector.SampleOnce(0.1f);
+            _detector.SampleOnce(StepSeconds);
 
-            Assert.That(() => _detector.SampleOnce(0.1f), new NUnit.Framework.Constraints.NotConstraint(UnityEngine.TestTools.Constraints.Is.AllocatingGCMemory()));
+            Assert.That(() => _detector.SampleOnce(StepSeconds), new NUnit.Framework.Constraints.NotConstraint(UnityEngine.TestTools.Constraints.Is.AllocatingGCMemory()));
             _detector.StopLooking();
         }
 
