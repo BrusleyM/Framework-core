@@ -7,6 +7,9 @@
 - Edit mode and play mode tests for the snap point and `SnapBlend`.
 - Snap behavior to know: an object snapped to one point must be released before another point accepts it. A snap triggers on enter only, so an object rejected while the point is occupied must leave and enter again (or be offered with `TryOffer`). Releasing during the animation stops the object where it is and raises only `OnReleased`. Disabling a point mid-animation, or destroying the object or the point, releases it. A point that moves during the animation is followed. Set `Ignore Time Scale` to animate while the game is paused. `Snappable` makes its Rigidbody kinematic and turns its interpolation off while snapped, and restores both on release. Only 3D Rigidbody is handled. A point with no key refuses everything.
 
+### Fixed
+- `Outline.OutlineActive` is created with the component, so enabling an outline no longer throws on an `Outline` added from code.
+
 ### Deprecated
 - `SnapObject` (matches by name and teleports on collision). Use `SnapPoint` with `Snappable` and `SnapKey`.
 

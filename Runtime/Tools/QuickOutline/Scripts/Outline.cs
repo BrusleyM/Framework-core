@@ -10,7 +10,7 @@ public class Outline : MonoBehaviour
 {
     private static HashSet<Mesh> registeredMeshes = new HashSet<Mesh>();
 
-    public UnityEvent OutlineActive;
+    public UnityEvent OutlineActive = new UnityEvent();
     public event Action Disabled;
     [SerializeField]
     private bool outlineOn = false;
