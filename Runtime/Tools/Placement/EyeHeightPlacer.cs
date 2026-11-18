@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -24,6 +25,7 @@ namespace Framework
         private UnityEvent _onPlaced = new UnityEvent();
 
         private Coroutine _delayedPlacement;
+        private bool _isPlacing;
 
         public UnityEvent OnPlaced => _onPlaced;
 
@@ -42,6 +44,12 @@ namespace Framework
 
         private bool TryPlace(out string failureReason)
         {
+            if (_isPlacing)
+            {
+                failureReason = "a placement is already running, so a placed listener cannot place again";
+                return false;
+            }
+
             var eyes = ResolveEyes();
             var target = _target != null ? _target : transform;
             failureReason = ReasonItCannotPlace(eyes, target);
@@ -58,7 +66,15 @@ namespace Framework
                 _facing,
                 target.rotation);
             target.SetPositionAndRotation(pose.position, pose.rotation);
-            _onPlaced.Invoke();
+            _isPlacing = true;
+            try
+            {
+                SafeEvents.Invoke(_onPlaced, this);
+            }
+            finally
+            {
+                _isPlacing = false;
+            }
             return true;
         }
 
@@ -75,7 +91,7 @@ namespace Framework
             }
             else
             {
-                _delayedPlacement = StartCoroutine(PlaceAfterDelay());
+                _delayedPlacement = StartCoroutine(GuardedCoroutine.Run(PlaceAfterDelay(), ReportDelayedPlacementFailure, this));
             }
         }
 
@@ -86,6 +102,12 @@ namespace Framework
                 StopCoroutine(_delayedPlacement);
                 _delayedPlacement = null;
             }
+        }
+
+        private void ReportDelayedPlacementFailure(Exception failure)
+        {
+            Debug.LogException(failure, this);
+            _delayedPlacement = null;
         }
 
         private IEnumerator PlaceAfterDelay()

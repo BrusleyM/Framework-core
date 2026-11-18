@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -6,6 +7,8 @@ namespace Framework
 {
     public class LookTarget : MonoBehaviour
     {
+        private const int MaxEventRounds = 8;
+
         [SerializeField]
         private Transform _aimPoint;
         [SerializeField]
@@ -20,6 +23,9 @@ namespace Framework
         private UnityEvent _onSeen = new UnityEvent();
 
         private LookDwell _dwell;
+        private bool _isReporting;
+        private bool _resetDuringReport;
+        private readonly Queue<LookChange> _pendingChanges = new Queue<LookChange>();
 
         public UnityEvent OnLookStarted => _onLookStarted;
         public UnityEvent OnLookEnded => _onLookEnded;
@@ -55,27 +61,72 @@ namespace Framework
         public LookChange ReportGaze(bool isLookedAt, float deltaSeconds)
         {
             var change = Dwell.Update(isLookedAt, deltaSeconds);
-            if ((change & LookChange.Started) != 0)
+            if (_isReporting)
             {
-                _onLookStarted.Invoke();
-                LookStarted?.Invoke();
+                if (change != LookChange.None)
+                {
+                    _pendingChanges.Enqueue(change);
+                }
+                return change;
             }
-            if ((change & LookChange.Seen) != 0)
+
+            _isReporting = true;
+            _resetDuringReport = false;
+            try
             {
-                _onSeen.Invoke();
-                Seen?.Invoke();
+                RaiseInOrder(change);
             }
-            if ((change & LookChange.Ended) != 0)
+            finally
             {
-                _onLookEnded.Invoke();
-                LookEnded?.Invoke();
+                _isReporting = false;
+                _resetDuringReport = false;
+                _pendingChanges.Clear();
             }
             return change;
+        }
+
+        private void RaiseInOrder(LookChange first)
+        {
+            var next = first;
+            var rounds = 0;
+            while (next != LookChange.None)
+            {
+                if (++rounds > MaxEventRounds)
+                {
+                    Debug.LogError($"{name}: look events kept retriggering themselves, so they were stopped after {MaxEventRounds} rounds.", this);
+                    return;
+                }
+
+                RaiseEvents(next);
+                next = _pendingChanges.Count > 0 ? _pendingChanges.Dequeue() : LookChange.None;
+            }
+        }
+
+        private void RaiseEvents(LookChange change)
+        {
+            _resetDuringReport = false;
+            if ((change & LookChange.Started) != 0)
+            {
+                SafeEvents.Invoke(_onLookStarted, this);
+                SafeEvents.Invoke(LookStarted, this);
+            }
+            if ((change & LookChange.Seen) != 0 && !_resetDuringReport)
+            {
+                SafeEvents.Invoke(_onSeen, this);
+                SafeEvents.Invoke(Seen, this);
+            }
+            if ((change & LookChange.Ended) != 0 && !_resetDuringReport)
+            {
+                SafeEvents.Invoke(_onLookEnded, this);
+                SafeEvents.Invoke(LookEnded, this);
+            }
         }
 
         public void ResetLook()
         {
             Dwell.Reset();
+            _pendingChanges.Clear();
+            _resetDuringReport = _isReporting;
         }
     }
 }

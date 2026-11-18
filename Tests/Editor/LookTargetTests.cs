@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Framework.Tests
 {
@@ -61,6 +62,90 @@ namespace Framework.Tests
             _target.ReportGaze(true, 0.1f);
 
             Assert.That(codeSeen, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_started_listener_that_throws_does_not_stop_the_seen_event_from_being_raised()
+        {
+            _target.OnLookStarted.AddListener(() => throw new System.InvalidOperationException("started failed"));
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("started failed"));
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_seen, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Looking_away_from_inside_the_seen_listener_still_raises_ended()
+        {
+            _target.OnSeen.AddListener(() => _target.ReportGaze(false, 0f));
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_ended, Is.EqualTo(1));
+            Assert.That(_target.IsBeingLookedAt, Is.False);
+        }
+
+        [Test]
+        public void A_listener_that_reports_the_same_gaze_again_does_not_raise_started_twice()
+        {
+            _target.OnLookStarted.AddListener(() => _target.ReportGaze(true, 0.1f));
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_started, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Looking_away_and_back_from_inside_a_listener_raises_the_events_in_the_order_they_happened()
+        {
+            var order = new System.Collections.Generic.List<string>();
+            var flipped = false;
+            _target.OnLookStarted.AddListener(() => order.Add("started"));
+            _target.OnSeen.AddListener(() =>
+            {
+                order.Add("seen");
+                if (!flipped)
+                {
+                    flipped = true;
+                    _target.ReportGaze(false, 0f);
+                    _target.ReportGaze(true, 0f);
+                }
+            });
+            _target.OnLookEnded.AddListener(() => order.Add("ended"));
+
+            _target.ReportGaze(true, 0.1f);
+
+            CollectionAssert.AreEqual(new[] { "started", "seen", "ended", "started" }, order);
+            Assert.That(_target.IsBeingLookedAt, Is.True);
+        }
+
+        [Test]
+        public void Resetting_the_look_from_inside_a_listener_drops_the_queued_events()
+        {
+            var ended = 0;
+            _target.OnLookEnded.AddListener(() => ended++);
+            _target.OnSeen.AddListener(() =>
+            {
+                _target.ReportGaze(false, 0f);
+                _target.ResetLook();
+            });
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(ended, Is.EqualTo(0));
+            Assert.That(_target.IsSeen, Is.False);
+        }
+
+        [Test]
+        public void Resetting_the_look_from_the_started_listener_stops_the_seen_event_of_that_same_change()
+        {
+            _target.OnLookStarted.AddListener(() => _target.ResetLook());
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_seen, Is.EqualTo(0));
+            Assert.That(_target.IsSeen, Is.False);
         }
 
         [Test]

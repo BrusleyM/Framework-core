@@ -127,10 +127,10 @@ namespace Framework
             }
 
             _sampling = StartCoroutine(SampleRepeatedly());
-            _onLookingStarted.Invoke();
+            SafeEvents.Invoke(_onLookingStarted, this);
             if (IsLooking)
             {
-                LookingStarted?.Invoke();
+                SafeEvents.Invoke(LookingStarted, this);
             }
         }
 
@@ -178,8 +178,8 @@ namespace Framework
                 if ((change & LookChange.Seen) != 0)
                 {
                     _anyTargetSeenInRun = true;
-                    _onTargetFound.Invoke(target);
-                    TargetFound?.Invoke(target);
+                    SafeEvents.Invoke(_onTargetFound, target, this);
+                    SafeEvents.Invoke(TargetFound, target, this);
                 }
             }
 
@@ -223,7 +223,14 @@ namespace Framework
                 var now = Time.unscaledTime;
                 var elapsed = LookSampling.ClampedDelta(now - lastSampleTime, _sampleIntervalSeconds);
                 lastSampleTime = now;
-                SampleOnce(elapsed);
+                try
+                {
+                    SampleOnce(elapsed);
+                }
+                catch (Exception failure)
+                {
+                    Debug.LogException(failure, this);
+                }
             }
         }
 
@@ -247,8 +254,8 @@ namespace Framework
                 _stopBuffer[index].ReportGaze(false, 0f);
             }
 
-            _onLookingStopped.Invoke(reason);
-            LookingStopped?.Invoke(reason);
+            SafeEvents.Invoke(_onLookingStopped, reason, this);
+            SafeEvents.Invoke(LookingStopped, reason, this);
         }
 
         private void CollectDistinctTargetsInto(List<LookTarget> destination)
@@ -284,8 +291,8 @@ namespace Framework
             }
 
             _allTargetsFoundRaised = true;
-            _onAllTargetsFound.Invoke();
-            AllTargetsFound?.Invoke();
+            SafeEvents.Invoke(_onAllTargetsFound, this);
+            SafeEvents.Invoke(AllTargetsFound, this);
         }
 
         private bool IsLookedAt(Transform eyes, LookTarget target)
