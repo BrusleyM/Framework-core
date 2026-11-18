@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, master]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-lint:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: raven-actions/actionlint@v2
+
+  package-checks:
+    name: Package checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test the CI tooling
+        working-directory: .github/scripts
+        run: python -m unittest test_release_tools
+      - name: Check manifest, meta files, assembly references and changelog
+        run: python .github/scripts/check_package.py
+      - name: On a pull request into master, require the changelog section of the release
+        if: github.event_name == 'pull_request' && github.base_ref == 'master'
+        run: python .github/scripts/check_package.py --release

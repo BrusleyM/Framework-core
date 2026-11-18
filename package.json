@@ -1,0 +1,22 @@
+{
+    "name": "com.vishnu.framework.core",
+    "version": "1.0.0-preview.1",
+    "displayName": "Framework Core",
+    "description": "Core building blocks for Unity guided experiences: check points, object outlines and scene tools.",
+    "unity": "2022.3",
+    "license": "MIT",
+    "keywords": [
+        "checkpoints",
+        "outline",
+        "tools",
+        "xr"
+    ],
+    "author": {
+        "name": "Brusley Masemola",
+        "url": "https://github.com/BrusleyM/Framework-core"
+    },
+    "dependencies": {
+        "com.unity.modules.physics": "1.0.0",
+        "com.unity.render-pipelines.universal": "14.0.8"
+    }
+}
