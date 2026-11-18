@@ -147,12 +147,31 @@ namespace Framework.Tests
         }
 
         [Test]
-        public void The_warning_for_a_target_related_to_the_eyes_names_that_cause()
+        public void The_warning_for_a_rig_that_holds_the_eyes_names_the_ancestor_cause()
         {
-            AssignObject("_target", _eyesObject.transform);
+            var rig = Create("rig");
+            _eyesObject.transform.SetParent(rig.transform, true);
+            AssignObject("_target", rig.transform);
             LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("one of their ancestors"));
 
             _placer.Place();
+        }
+
+        [Test]
+        public void A_placer_on_the_rig_without_a_target_refuses_to_move_its_own_rig()
+        {
+            var rig = Create("rig");
+            rig.transform.position = new Vector3(2f, 0f, 2f);
+            _eyesObject.transform.SetParent(rig.transform, true);
+            var rigPlacer = rig.AddComponent<EyeHeightPlacer>();
+            var serialized = new SerializedObject(rigPlacer);
+            serialized.FindProperty("_eyes").objectReferenceValue = _eyesObject.transform;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var placed = rigPlacer.TryPlace();
+
+            Assert.That(placed, Is.False);
+            Assert.That(rig.transform.position, Is.EqualTo(new Vector3(2f, 0f, 2f)).Using(Vector3EqualityComparer.Instance));
         }
 
         [Test]
