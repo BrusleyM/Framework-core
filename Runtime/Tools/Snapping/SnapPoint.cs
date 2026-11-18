@@ -76,6 +76,11 @@ namespace Framework
             return true;
         }
 
+        private void OnDestroy()
+        {
+            Release();
+        }
+
         private void OnDisable()
         {
             if (_snapRoutine != null)
