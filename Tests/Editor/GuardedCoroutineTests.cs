@@ -66,15 +66,7 @@ namespace Framework.Tests
         }
 
         [Test]
-        public void A_failure_handler_that_throws_is_logged_and_not_propagated()
-        {
-            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("handler failed"));
-
-            Assert.DoesNotThrow(() => Drain(GuardedCoroutine.Run(FailsOnTheSecondStep(), _ => throw new InvalidOperationException("handler failed"))));
-        }
-
-        [Test]
-        public void A_routine_that_finishes_is_disposed_so_its_finally_blocks_run()
+        public void Disposing_the_guarded_routine_early_disposes_the_inner_routine_so_its_finally_block_runs()
         {
             var finallyRan = false;
             IEnumerator WithFinally()
@@ -82,38 +74,64 @@ namespace Framework.Tests
                 try
                 {
                     yield return 1;
+                    yield return 2;
                 }
                 finally
                 {
                     finallyRan = true;
                 }
             }
+            var guarded = GuardedCoroutine.Run(WithFinally(), null);
+            guarded.MoveNext();
 
-            Drain(GuardedCoroutine.Run(WithFinally(), null));
+            ((IDisposable)guarded).Dispose();
 
             Assert.That(finallyRan, Is.True);
         }
 
         [Test]
-        public void A_failing_routine_is_disposed_too()
+        public void A_failure_in_a_nested_routine_is_reported_to_the_failure_handler()
         {
-            var finallyRan = false;
-            IEnumerator FailsWithFinally()
+            IEnumerator Outer()
             {
-                try
-                {
-                    yield return 1;
-                    throw new InvalidOperationException("boom");
-                }
-                finally
-                {
-                    finallyRan = true;
-                }
+                yield return 1;
+                yield return FailsOnTheSecondStep();
+                yield return 3;
+            }
+            var failures = new List<Exception>();
+
+            var yielded = Drain(GuardedCoroutine.Run(Outer(), failures.Add));
+
+            CollectionAssert.AreEqual(new object[] { 1, 1 }, yielded);
+            Assert.That(failures.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_nested_routine_that_succeeds_hands_control_back_to_the_outer_routine()
+        {
+            IEnumerator Inner()
+            {
+                yield return "inner";
+            }
+            IEnumerator Outer()
+            {
+                yield return "before";
+                yield return Inner();
+                yield return "after";
             }
 
-            Drain(GuardedCoroutine.Run(FailsWithFinally(), _ => { }));
+            var yielded = Drain(GuardedCoroutine.Run(Outer(), _ => Assert.Fail("no failure expected")));
 
-            Assert.That(finallyRan, Is.True);
+            CollectionAssert.AreEqual(new object[] { "before", "inner", "after" }, yielded);
+        }
+
+        [Test]
+        public void When_the_failure_handler_also_throws_both_exceptions_are_logged()
+        {
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("second step failed"));
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("handler failed"));
+
+            Assert.DoesNotThrow(() => Drain(GuardedCoroutine.Run(FailsOnTheSecondStep(), _ => throw new InvalidOperationException("handler failed"))));
         }
     }
 }

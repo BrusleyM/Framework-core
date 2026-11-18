@@ -611,26 +611,46 @@ namespace Framework.Tests
         }
 
         [UnityTest]
-        public IEnumerator A_look_target_listener_that_reports_gaze_again_does_not_recurse()
+        public IEnumerator A_look_target_listener_that_flips_the_gaze_back_and_forth_does_not_recurse_without_end()
         {
             SetPrivate(_detector, "_stopRule", LookStopRule.Never);
             var started = 0;
             _ahead.OnLookStarted.AddListener(() =>
             {
                 started++;
+                _ahead.ReportGaze(false, StepSeconds);
                 _ahead.ReportGaze(true, StepSeconds);
             });
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("kept retriggering"));
+            yield return null;
+            _detector.StartLooking();
+
+            Assert.DoesNotThrow(() => _detector.SampleOnce(StepSeconds));
+
+            Assert.That(started, Is.GreaterThan(0));
+            Assert.That(started, Is.LessThan(10));
+            _detector.StopLooking();
+        }
+
+        [UnityTest]
+        public IEnumerator Stopping_the_run_from_the_seen_listener_still_ends_the_look_of_that_target()
+        {
+            SetPrivate(_detector, "_stopRule", LookStopRule.Never);
+            var ended = 0;
+            _ahead.OnSeen.AddListener(() => _detector.StopLooking());
+            _ahead.OnLookEnded.AddListener(() => ended++);
             yield return null;
             _detector.StartLooking();
 
             _detector.SampleOnce(StepSeconds);
 
-            Assert.That(started, Is.EqualTo(1));
-            _detector.StopLooking();
+            Assert.That(ended, Is.EqualTo(1));
+            Assert.That(_ahead.IsBeingLookedAt, Is.False);
+            CollectionAssert.AreEqual(new[] { LookStopReason.Requested }, _stopReasons);
         }
 
         [UnityTest]
-        public IEnumerator A_listener_that_throws_does_not_stop_the_sampling_loop()
+        public IEnumerator A_seen_listener_that_throws_is_logged_and_the_found_event_and_sampling_still_run()
         {
             SetPrivate(_detector, "_sampleIntervalSeconds", 0.03f);
             SetPrivate(_detector, "_stopRule", LookStopRule.Never);
@@ -639,15 +659,25 @@ namespace Framework.Tests
             SetTargets(_ahead, side);
             Physics.SyncTransforms();
             _ahead.OnSeen.AddListener(() => throw new System.InvalidOperationException("listener failed"));
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("listener failed"));
             yield return null;
-            LogAssert.ignoreFailingMessages = true;
-            _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(0.4f);
-            LogAssert.ignoreFailingMessages = false;
 
+            _detector.StartLooking();
+            yield return WaitUntil(() => side.IsSeen, 3f);
+
+            Assert.That(_foundCount, Is.EqualTo(2));
             Assert.That(side.IsSeen, Is.True);
             Assert.That(_detector.IsLooking, Is.True);
             _detector.StopLooking();
+        }
+
+        private static IEnumerator WaitUntil(System.Func<bool> condition, float timeoutSeconds)
+        {
+            var deadline = Time.realtimeSinceStartup + timeoutSeconds;
+            while (!condition() && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
         }
 
         [UnityTest]

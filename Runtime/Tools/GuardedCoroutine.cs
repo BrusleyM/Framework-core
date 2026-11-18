@@ -1,57 +1,84 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Framework
 {
     public static class GuardedCoroutine
     {
-        public static IEnumerator Run(IEnumerator routine, Action<Exception> onFailure)
+        public static IEnumerator Run(IEnumerator routine, Action<Exception> onFailure, Object context = null)
         {
-            while (true)
+            var pending = new Stack<IEnumerator>();
+            pending.Push(routine);
+            try
             {
-                object current = null;
-                var finished = false;
-                try
+                while (pending.Count > 0)
                 {
-                    finished = !routine.MoveNext();
-                    if (!finished)
+                    var current = pending.Peek();
+                    object yielded = null;
+                    var hasValue = false;
+                    var failed = false;
+                    try
                     {
-                        current = routine.Current;
+                        hasValue = current.MoveNext();
+                        if (hasValue)
+                        {
+                            yielded = current.Current;
+                        }
+                    }
+                    catch (Exception failure)
+                    {
+                        failed = true;
+                        Report(failure, onFailure, context);
+                    }
+
+                    if (failed)
+                    {
+                        yield break;
+                    }
+
+                    if (!hasValue)
+                    {
+                        pending.Pop();
+                        (current as IDisposable)?.Dispose();
+                    }
+                    else if (yielded is IEnumerator nested)
+                    {
+                        pending.Push(nested);
+                    }
+                    else
+                    {
+                        yield return yielded;
                     }
                 }
-                catch (Exception failure)
+            }
+            finally
+            {
+                while (pending.Count > 0)
                 {
-                    finished = true;
-                    Report(failure, onFailure);
+                    (pending.Pop() as IDisposable)?.Dispose();
                 }
-
-                if (finished)
-                {
-                    (routine as IDisposable)?.Dispose();
-                    yield break;
-                }
-
-                yield return current;
             }
         }
 
-        private static void Report(Exception failure, Action<Exception> onFailure)
+        private static void Report(Exception failure, Action<Exception> onFailure, Object context)
         {
+            if (onFailure == null)
+            {
+                Debug.LogException(failure, context);
+                return;
+            }
+
             try
             {
-                if (onFailure != null)
-                {
-                    onFailure(failure);
-                }
-                else
-                {
-                    Debug.LogException(failure);
-                }
+                onFailure(failure);
             }
             catch (Exception handlerFailure)
             {
-                Debug.LogException(handlerFailure);
+                Debug.LogException(failure, context);
+                Debug.LogException(handlerFailure, context);
             }
         }
     }

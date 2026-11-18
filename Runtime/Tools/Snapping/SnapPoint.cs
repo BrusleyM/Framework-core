@@ -54,8 +54,9 @@ namespace Framework
             else
             {
                 _isAnimating = true;
-                var routine = StartCoroutine(GuardedCoroutine.Run(AnimateSnap(candidate), AbortAnimatedSnap));
+                var routine = StartCoroutine(GuardedCoroutine.Run(AnimateSnap(candidate), AbortAnimatedSnap, this));
                 _snapRoutine = _isAnimating ? routine : null;
+                return Occupant == candidate;
             }
             return true;
         }
@@ -76,7 +77,7 @@ namespace Framework
             StopAnimating();
             Occupant = null;
             released.EndSnap();
-            _onReleased?.Invoke(released);
+            SafeEvents.Invoke(_onReleased, released, this);
             return true;
         }
 
@@ -136,7 +137,7 @@ namespace Framework
         private void CompleteSnap(Snappable snapped)
         {
             ApplyPose(snapped, BlendTowardsThisPoint(), 1f);
-            _onSnapped?.Invoke(snapped);
+            SafeEvents.Invoke(_onSnapped, snapped, this);
         }
 
         private static void ApplyPose(Snappable snapped, SnapBlend blend, float easedProgress)

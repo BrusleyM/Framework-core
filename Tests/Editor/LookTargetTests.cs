@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Framework.Tests
 {
@@ -61,6 +62,38 @@ namespace Framework.Tests
             _target.ReportGaze(true, 0.1f);
 
             Assert.That(codeSeen, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_started_listener_that_throws_does_not_stop_the_seen_event_from_being_raised()
+        {
+            _target.OnLookStarted.AddListener(() => throw new System.InvalidOperationException("started failed"));
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("started failed"));
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_seen, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Looking_away_from_inside_the_seen_listener_still_raises_ended()
+        {
+            _target.OnSeen.AddListener(() => _target.ReportGaze(false, 0f));
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_ended, Is.EqualTo(1));
+            Assert.That(_target.IsBeingLookedAt, Is.False);
+        }
+
+        [Test]
+        public void A_listener_that_reports_the_same_gaze_again_does_not_raise_started_twice()
+        {
+            _target.OnLookStarted.AddListener(() => _target.ReportGaze(true, 0.1f));
+
+            _target.ReportGaze(true, 0.1f);
+
+            Assert.That(_started, Is.EqualTo(1));
         }
 
         [Test]

@@ -6,6 +6,8 @@ namespace Framework
 {
     public class LookTarget : MonoBehaviour
     {
+        private const int MaxEventRounds = 8;
+
         [SerializeField]
         private Transform _aimPoint;
         [SerializeField]
@@ -21,6 +23,7 @@ namespace Framework
 
         private LookDwell _dwell;
         private bool _isReporting;
+        private LookChange _pendingChange;
 
         public UnityEvent OnLookStarted => _onLookStarted;
         public UnityEvent OnLookEnded => _onLookEnded;
@@ -55,20 +58,35 @@ namespace Framework
 
         public LookChange ReportGaze(bool isLookedAt, float deltaSeconds)
         {
+            var change = Dwell.Update(isLookedAt, deltaSeconds);
             if (_isReporting)
             {
-                return LookChange.None;
+                _pendingChange |= change;
+                return change;
             }
 
-            var change = Dwell.Update(isLookedAt, deltaSeconds);
             _isReporting = true;
             try
             {
-                RaiseEvents(change);
+                var toRaise = change;
+                var rounds = 0;
+                while (toRaise != LookChange.None)
+                {
+                    if (++rounds > MaxEventRounds)
+                    {
+                        Debug.LogError($"{name}: look events kept retriggering themselves, so they were stopped after {MaxEventRounds} rounds.", this);
+                        break;
+                    }
+
+                    RaiseEvents(toRaise);
+                    toRaise = _pendingChange;
+                    _pendingChange = LookChange.None;
+                }
             }
             finally
             {
                 _isReporting = false;
+                _pendingChange = LookChange.None;
             }
             return change;
         }
@@ -77,18 +95,18 @@ namespace Framework
         {
             if ((change & LookChange.Started) != 0)
             {
-                _onLookStarted.Invoke();
-                LookStarted?.Invoke();
+                SafeEvents.Invoke(_onLookStarted, this);
+                SafeEvents.Invoke(LookStarted, this);
             }
             if ((change & LookChange.Seen) != 0)
             {
-                _onSeen.Invoke();
-                Seen?.Invoke();
+                SafeEvents.Invoke(_onSeen, this);
+                SafeEvents.Invoke(Seen, this);
             }
             if ((change & LookChange.Ended) != 0)
             {
-                _onLookEnded.Invoke();
-                LookEnded?.Invoke();
+                SafeEvents.Invoke(_onLookEnded, this);
+                SafeEvents.Invoke(LookEnded, this);
             }
         }
 

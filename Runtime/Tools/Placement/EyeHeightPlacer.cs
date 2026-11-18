@@ -69,7 +69,7 @@ namespace Framework
             _isPlacing = true;
             try
             {
-                _onPlaced.Invoke();
+                SafeEvents.Invoke(_onPlaced, this);
             }
             finally
             {
@@ -91,7 +91,7 @@ namespace Framework
             }
             else
             {
-                _delayedPlacement = StartCoroutine(GuardedCoroutine.Run(PlaceAfterDelay(), ForgetDelayedPlacement));
+                _delayedPlacement = StartCoroutine(GuardedCoroutine.Run(PlaceAfterDelay(), ReportDelayedPlacementFailure, this));
             }
         }
 
@@ -104,7 +104,7 @@ namespace Framework
             }
         }
 
-        private void ForgetDelayedPlacement(Exception failure)
+        private void ReportDelayedPlacementFailure(Exception failure)
         {
             Debug.LogException(failure, this);
             _delayedPlacement = null;
