@@ -13,7 +13,7 @@ namespace Framework.CheckPoints
         public bool IsChecked => _isChecked;
 
         [SerializeField]
-        private UnityEvent _onChecked;
+        private UnityEvent _onChecked = new UnityEvent();
         public UnityEvent OnChecked => _onChecked;
 
         [HideInInspector]

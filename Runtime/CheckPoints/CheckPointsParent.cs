@@ -10,7 +10,7 @@ namespace Framework.CheckPoints
         [SerializeField]
         private List<CheckPoint> _points;
         [SerializeField]
-        private UnityEvent _onAllChecked;
+        private UnityEvent _onAllChecked = new UnityEvent();
 
         public List<CheckPoint> CheckPoints => _points;
         public UnityEvent OnAllChecked => _onAllChecked;
