@@ -35,3 +35,10 @@ All in `Shaders/`, written for URP and SRP Batcher friendly:
 - `Framework/Samples/Grid Floor`: anti-aliased grid with fading rings.
 
 Glow colour, strength and flash are changed at runtime with `GlowControl`, which uses a material property block so the materials are shared.
+
+## Limits
+
+- Keys and walking only work with the legacy Input Manager (Active Input Handling set to Input Manager or Both). With only the new Input System the camera rig warns and the key bindings do nothing.
+- The post-processing profile needs post processing enabled on the URP renderer.
+- `GlowControl` uses material property blocks, which opt those renderers out of the SRP Batcher. Fine for a demo; give each object its own material if you copy the pattern into a busy scene.
+- The shaders have only a forward pass, so they do not appear in the depth or depth-normals textures.
