@@ -34,5 +34,14 @@ namespace Framework.Tests
 
             Assert.That(parent.OnAllChecked, Is.Not.Null);
         }
+
+        [Test]
+        public void A_check_points_parent_created_from_code_has_no_points_and_resets_without_failing()
+        {
+            var parent = new CheckPointsParent();
+
+            Assert.That(parent.CheckPoints, Is.Empty);
+            Assert.DoesNotThrow(() => parent.ResetAllPoints());
+        }
     }
 }
