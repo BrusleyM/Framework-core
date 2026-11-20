@@ -2,7 +2,7 @@
 
 Open `Scenes/Core Showcase.unity` and press Play. It needs the Universal Render Pipeline (the glow uses HDR and bloom, so keep HDR on in the pipeline asset) and the legacy Input Manager for the walking keys.
 
-A plaza with five glowing cylinder stands around a central hub. Each stand shows one feature of the core. Look at things to trigger them.
+A plaza with five glowing cylinder stands around a central hub. Each stand shows one feature of the core. Look at things to trigger them: a glowing ring appears on whatever you look at and fills while the dwell time runs, then turns green when it counts as seen.
 
 | Stand | Shows | Try |
 |---|---|---|
@@ -32,6 +32,7 @@ All in `Shaders/`, written for URP and SRP Batcher friendly:
 - `Framework/Samples/Hologram`: transparent additive look with fresnel, scanlines and flicker.
 - `Framework/Samples/Iridescent`: colour that shifts with view angle, height and time.
 - `Framework/Samples/Stand Glow`: glowing rims, rings and a stripe for the cylinder stands.
+- `Framework/Samples/Gaze Ring`: the radial fill ring and centre dot drawn on the looked-at object (`GazeRing` drives it from the targets' events and `LookProgress`).
 - `Framework/Samples/Grid Floor`: anti-aliased grid with fading rings.
 
 Glow colour, strength and flash are changed at runtime with `GlowControl`, which uses a material property block so the materials are shared.

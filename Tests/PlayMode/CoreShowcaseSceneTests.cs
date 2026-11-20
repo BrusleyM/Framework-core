@@ -197,5 +197,25 @@ namespace Framework.Tests
             Assert.That(flatDistance, Is.EqualTo(1.8f).Within(0.01f));
             Assert.That(Vector3.Distance(panel.position, home), Is.LessThan(0.001f));
         }
+
+        [UnityTest]
+        public IEnumerator A_ring_appears_on_the_orb_while_looking_at_it_fills_up_and_disappears_when_looking_away()
+        {
+            yield return SetUpTheShowcase();
+            var orb = Named<LookTarget>("Look orb");
+            var ringName = "Look orb gaze ring";
+
+            StandNear(orb);
+            yield return Until(() => GameObject.Find(ringName) != null);
+            var ring = GameObject.Find(ringName);
+            yield return Until(() => orb.IsSeen);
+            yield return null;
+            var fillWhenSeen = ring.GetComponent<Renderer>().sharedMaterial.GetFloat("_Fill");
+            _head.rotation = Quaternion.LookRotation(Vector3.up);
+            yield return Until(() => ring == null || !ring.activeSelf);
+
+            Assert.That(fillWhenSeen, Is.EqualTo(1f));
+            Assert.That(ring.activeSelf, Is.False);
+        }
     }
 }
