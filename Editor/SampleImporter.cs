@@ -15,41 +15,63 @@ namespace Framework.Editor
             foreach (var guid in AssetDatabase.FindAssets(editorAssemblyName + " t:AssemblyDefinitionAsset"))
             {
                 var assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                if (Path.GetFileNameWithoutExtension(assetPath) == editorAssemblyName)
+                if (Path.GetFileNameWithoutExtension(assetPath) != editorAssemblyName)
                 {
-                    var editorFolder = Path.GetDirectoryName(Path.GetFullPath(assetPath));
-                    return Path.GetDirectoryName(editorFolder);
+                    continue;
                 }
+
+                var package = UnityEditor.PackageManager.PackageInfo.FindForAssetPath(assetPath);
+                if (package != null)
+                {
+                    return package.resolvedPath;
+                }
+
+                return Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(assetPath)));
             }
 
             return null;
         }
 
-        public static void ImportAll(string packageRoot, string menuName)
+        public static int ImportAll(string packageRoot, string packageName)
         {
             if (packageRoot == null)
             {
-                Debug.LogError($"The {menuName} package folder was not found.");
-                return;
+                Debug.LogError($"The {packageName} package folder was not found.");
+                return 0;
             }
 
             var package = ReadPackage(File.ReadAllText(Path.Combine(packageRoot, "package.json")));
             var imported = 0;
-            foreach (var sample in package.samples)
+            try
             {
-                var destination = DestinationFor(package.displayName, sample.displayName);
-                if (Directory.Exists(destination))
+                foreach (var sample in package.samples)
                 {
-                    Debug.LogWarning($"'{sample.displayName}' is already in {destination}. Delete that folder to import it again.");
-                    continue;
-                }
+                    var existing = FindExistingImport(package.displayName, sample.displayName);
+                    if (existing != null)
+                    {
+                        Debug.LogWarning($"'{sample.displayName}' is already in {existing}. Delete that folder to import it again.");
+                        continue;
+                    }
 
-                Copy(Path.Combine(packageRoot, sample.path), destination);
-                imported++;
+                    Copy(Path.Combine(packageRoot, sample.path), DestinationFor(package.displayName, sample.displayName));
+                    imported++;
+                }
+            }
+            finally
+            {
+                AssetDatabase.Refresh();
             }
 
-            AssetDatabase.Refresh();
-            Debug.Log($"Imported {imported} sample(s) from {package.displayName} into {SamplesFolder}.");
+            if (imported == 0)
+            {
+                Debug.LogWarning($"Nothing was imported from {package.displayName}.");
+            }
+            else
+            {
+                Debug.Log($"Imported {imported} sample(s) from {package.displayName} into {SamplesFolder}.");
+            }
+
+            return imported;
         }
 
         public static PackageSamples ReadPackage(string packageJson)
@@ -64,6 +86,32 @@ namespace Framework.Editor
             return $"{SamplesFolder}/{packageDisplayName}/{sampleDisplayName}";
         }
 
+        public static string FindExistingImport(string packageDisplayName, string sampleDisplayName)
+        {
+            var direct = DestinationFor(packageDisplayName, sampleDisplayName);
+            if (Directory.Exists(direct))
+            {
+                return direct;
+            }
+
+            var packageFolder = $"{SamplesFolder}/{packageDisplayName}";
+            if (!Directory.Exists(packageFolder))
+            {
+                return null;
+            }
+
+            foreach (var versionFolder in Directory.GetDirectories(packageFolder))
+            {
+                var versioned = Path.Combine(versionFolder, sampleDisplayName).Replace('\\', '/');
+                if (Directory.Exists(versioned))
+                {
+                    return versioned;
+                }
+            }
+
+            return null;
+        }
+
         public static void Copy(string source, string destination)
         {
             if (!Directory.Exists(source))
@@ -76,7 +124,26 @@ namespace Framework.Editor
                 throw new IOException($"{destination} already exists.");
             }
 
-            CopyContents(source, destination);
+            var partial = destination + ".importing";
+            if (Directory.Exists(partial))
+            {
+                Directory.Delete(partial, true);
+            }
+
+            try
+            {
+                CopyContents(source, partial);
+                Directory.Move(partial, destination);
+            }
+            catch
+            {
+                if (Directory.Exists(partial))
+                {
+                    Directory.Delete(partial, true);
+                }
+
+                throw;
+            }
         }
 
         private static void CopyContents(string source, string destination)

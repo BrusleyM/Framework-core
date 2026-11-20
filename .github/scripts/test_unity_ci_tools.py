@@ -58,6 +58,24 @@ class ImportSamplesTests(unittest.TestCase):
             self.assertEqual([], create_host_project.import_samples(package / ".host", package))
 
 
+    def test_two_samples_with_the_same_display_name_are_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            package = pathlib.Path(folder)
+            (package / "Samples~" / "A").mkdir(parents=True)
+            (package / "Samples~" / "B").mkdir(parents=True)
+            (package / "package.json").write_text(json.dumps({
+                "displayName": "X",
+                "version": "1.0.0",
+                "samples": [
+                    {"displayName": "Same", "description": "d", "path": "Samples~/A"},
+                    {"displayName": "Same", "description": "d", "path": "Samples~/B"},
+                ],
+            }))
+
+            with self.assertRaises(ValueError):
+                create_host_project.import_samples(package / ".host", package)
+
+
 class TestResultsTests(unittest.TestCase):
     def write_results(self, folder, name, total, failed):
         path = pathlib.Path(folder) / name

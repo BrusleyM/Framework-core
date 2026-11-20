@@ -77,6 +77,37 @@ namespace Framework.Tests
         }
 
         [Test]
+        public void A_copy_that_fails_leaves_no_half_imported_folder_behind()
+        {
+            var source = Path.Combine(_root, "source");
+            Directory.CreateDirectory(source);
+            File.WriteAllText(Path.Combine(source, "a.cs"), "a");
+            var destination = Path.Combine(_root, "blocked", "destination");
+            File.WriteAllText(Path.Combine(_root, "blocked"), "a file where the parent folder should be");
+
+            Assert.Catch(() => SampleImporter.Copy(source, destination));
+
+            Assert.That(Directory.Exists(destination), Is.False);
+            Assert.That(Directory.Exists(destination + ".importing"), Is.False);
+        }
+
+        [Test]
+        public void A_sample_imported_by_the_package_manager_under_a_version_folder_counts_as_already_imported()
+        {
+            var versioned = "Assets/Samples/Importer Test Package/9.9.9/Importer Test Sample";
+            Directory.CreateDirectory(versioned);
+            try
+            {
+                Assert.That(SampleImporter.FindExistingImport("Importer Test Package", "Importer Test Sample"), Is.EqualTo(versioned));
+                Assert.That(SampleImporter.FindExistingImport("Importer Test Package", "Another Sample"), Is.Null);
+            }
+            finally
+            {
+                Directory.Delete("Assets/Samples/Importer Test Package", true);
+            }
+        }
+
+        [Test]
         public void Copying_a_sample_that_does_not_exist_says_so()
         {
             Assert.Throws<DirectoryNotFoundException>(() => SampleImporter.Copy(Path.Combine(_root, "missing"), Path.Combine(_root, "destination")));
