@@ -23,6 +23,8 @@ namespace Framework.Tests
         [TestCase("1.2")]
         [TestCase("one.two.three")]
         [TestCase("^1.2.3")]
+        [TestCase("99999999999.0.0")]
+        [TestCase("١.٢.٣")]
         public void Text_that_is_not_a_semantic_version_is_refused(string text)
         {
             Assert.That(PackageVersion.TryParse(text, out _), Is.False);
@@ -35,6 +37,13 @@ namespace Framework.Tests
         [TestCase("1.2.0-preview.1", "1.2.0", false)]
         [TestCase("1.2.0", "1.2.0-preview.1", true)]
         [TestCase("1.2.0-preview.2", "1.2.0-preview.1", true)]
+        [TestCase("1.2.0-preview.10", "1.2.0-preview.2", true)]
+        [TestCase("1.2.0-preview.2", "1.2.0-preview.10", false)]
+        [TestCase("1.2.0-preview.1", "1.2.0-preview", true)]
+        [TestCase("1.2.0-preview", "1.2.0-preview.1", false)]
+        [TestCase("1.2.0-preview.1", "1.2.0-1", true)]
+        [TestCase("1.2.0-alpha", "1.2.0-beta", false)]
+        [TestCase("1.2.0-rc.01", "1.2.0-rc.1", true)]
         public void A_version_is_at_least_another_by_number_with_a_pre_release_below_its_release(string installed, string required, bool expected)
         {
             PackageVersion.TryParse(installed, out var installedVersion);

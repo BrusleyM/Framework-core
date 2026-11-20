@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Changed
+- Breaking for code that used it: `SampleImporter.PackageSamples` is now `SampleImporter.PackageManifest`.
+- `PackageVersion` compares pre-release labels the way semantic versioning does (`preview.10` is above `preview.2`, a number is below a word, a shorter label is below a longer one), no longer throws on numbers that do not fit or on non-ASCII digits, and `SampleImporter.ReadPackage` reads an empty manifest as one without samples.
 - The core showcase sample and its tests use `FindFirstObjectByType` and `FindObjectsByType` instead of the obsolete `FindObjectOfType` and `FindObjectsOfType`, which produced compiler warnings on Unity 6. Both exist from Unity 2022.3.
 - The CI Unity jobs pin the game-ci CLI release (`cliVersion`) instead of asking the GitHub API for the latest one, which answered 403 (rate limit) when jobs started together and ended the job with "No test result files were found".
 - The CI Unity jobs cache the host project's Library by the package sources too, and no longer fall back to an older Library. A cache keyed only by the project manifest could restore a Library from before files were added, so Unity compiled a script without the files next to it and the job ended with "No test result files were found".

@@ -76,7 +76,8 @@ namespace Framework.Editor
 
         public static PackageManifest ReadPackage(string packageJson)
         {
-            var package = JsonUtility.FromJson<PackageManifest>(packageJson);
+            var package = string.IsNullOrWhiteSpace(packageJson) ? null : JsonUtility.FromJson<PackageManifest>(packageJson);
+            package = package ?? new PackageManifest();
             package.samples = package.samples ?? new SampleEntry[0];
             return package;
         }
