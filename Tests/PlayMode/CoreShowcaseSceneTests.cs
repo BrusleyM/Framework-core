@@ -32,7 +32,9 @@ namespace Framework.Tests
         private IEnumerator LoadTheShowcase()
         {
 #if UNITY_EDITOR
-            yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(UnityEditor.AssetDatabase.GUIDToAssetPath(SceneGuid), new LoadSceneParameters(LoadSceneMode.Single));
+            var scenePath = UnityEditor.AssetDatabase.GUIDToAssetPath(SceneGuid);
+            Assert.That(scenePath, Is.Not.Empty, "The showcase scene was not found by its GUID.");
+            yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(scenePath, new LoadSceneParameters(LoadSceneMode.Single));
 #else
             yield break;
 #endif
