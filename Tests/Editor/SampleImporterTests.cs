@@ -76,6 +76,16 @@ namespace Framework.Tests
             Assert.Throws<IOException>(() => SampleImporter.Copy(source, destination));
         }
 
+        [TestCase("")]
+        [TestCase("   ")]
+        [TestCase(null)]
+        public void An_empty_manifest_reads_as_a_manifest_without_samples(string json)
+        {
+            var package = SampleImporter.ReadPackage(json);
+
+            Assert.That(package.samples, Is.Empty);
+        }
+
         [Test]
         public void A_copy_that_fails_leaves_no_half_imported_folder_behind()
         {
