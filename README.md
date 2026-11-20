@@ -8,6 +8,7 @@ Building blocks for Unity guided experiences, shared by the Framework packages. 
 |---|---|
 | `Framework.CheckPoints` | `CheckPoint` and `CheckPointsParent`, scene objects that mark progress. |
 | `Framework.Outline` | Object outlines with their shaders and materials. |
+| `Framework.Timing` | `ElapsedTimer` (how long something took) and `CountdownTimer` (a time limit or idle wait), on an `ITimeSource`. |
 | `Framework.Tools` | Small scene tools such as `SnapObject`. |
 
 ## Sample
