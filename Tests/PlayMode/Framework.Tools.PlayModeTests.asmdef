@@ -3,6 +3,9 @@
     "rootNamespace": "Framework.Tests",
     "references": [
         "Framework.Tools",
+        "Framework.CheckPoints",
+        "Framework.Outline",
+        "Framework.Core.Samples",
         "UnityEngine.TestRunner"
     ],
     "includePlatforms": [],
