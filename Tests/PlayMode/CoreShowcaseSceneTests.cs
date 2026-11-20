@@ -149,34 +149,66 @@ namespace Framework.Tests
         }
 
         [UnityTest]
-        public IEnumerator The_block_with_the_cyan_key_snaps_to_the_pad_and_the_red_block_is_refused()
+        public IEnumerator Drawing_a_colour_snaps_every_ball_of_that_colour_into_its_tray_and_refuses_the_rest()
         {
             yield return SetUpTheShowcase();
-            var point = Named<SnapPoint>("Snap anchor");
-            var cyan = Named<Snappable>("Cyan block");
-            var red = Named<Snappable>("Red block");
+            var machine = Object.FindObjectOfType<LottoMachine>();
 
-            yield return Until(() => point.IsOccupied);
-            yield return new WaitForSecondsRealtime(2.5f);
+            _keys.Press(KeyCode.Alpha2);
+            yield return Until(() => !machine.IsDrawing);
 
-            Assert.That(point.Occupant, Is.SameAs(cyan));
-            Assert.That(red.IsSnapped, Is.False);
+            var occupied = machine.Trays.Select(tray => tray.OccupiedCount).ToArray();
+            Assert.That(machine.Trays[1].ColourName, Is.EqualTo("CYAN"));
+            Assert.That(occupied, Is.EqualTo(new[] { 0, 5, 0, 0 }));
+            Assert.That(machine.Balls.Count(ball => ball.IsSnapped), Is.EqualTo(5));
         }
 
         [UnityTest]
-        public IEnumerator Pressing_space_drops_the_blocks_again_and_the_cyan_block_snaps_a_second_time()
+        public IEnumerator Drawing_two_colours_fills_both_trays_without_mixing_colours()
         {
             yield return SetUpTheShowcase();
-            var point = Named<SnapPoint>("Snap anchor");
-            yield return Until(() => point.IsOccupied);
-            yield return new WaitForSecondsRealtime(2.5f);
+            var machine = Object.FindObjectOfType<LottoMachine>();
+
+            _keys.Press(KeyCode.Alpha3);
+            yield return Until(() => !machine.IsDrawing);
+            _keys.Press(KeyCode.Alpha4);
+            yield return Until(() => !machine.IsDrawing);
+
+            var occupied = machine.Trays.Select(tray => tray.OccupiedCount).ToArray();
+            Assert.That(occupied, Is.EqualTo(new[] { 0, 0, 5, 5 }));
+        }
+
+        [UnityTest]
+        public IEnumerator Pressing_space_empties_the_trays_so_a_colour_can_be_drawn_again()
+        {
+            yield return SetUpTheShowcase();
+            var machine = Object.FindObjectOfType<LottoMachine>();
+            _keys.Press(KeyCode.Alpha1);
+            yield return Until(() => !machine.IsDrawing);
 
             _keys.Press(KeyCode.Space);
-            var occupiedRightAfterPressing = point.IsOccupied;
-            yield return Until(() => point.IsOccupied);
+            var snappedRightAfterShuffling = machine.Balls.Count(ball => ball.IsSnapped);
+            _keys.Press(KeyCode.Alpha1);
+            yield return Until(() => !machine.IsDrawing);
 
-            Assert.That(occupiedRightAfterPressing, Is.False);
-            Assert.That(point.Occupant.name, Is.EqualTo("Cyan block"));
+            Assert.That(snappedRightAfterShuffling, Is.EqualTo(0));
+            Assert.That(machine.Trays[0].OccupiedCount, Is.EqualTo(5));
+        }
+
+        [UnityTest]
+        public IEnumerator The_balls_keep_tumbling_inside_the_drum_until_they_are_drawn()
+        {
+            yield return SetUpTheShowcase();
+            var machine = Object.FindObjectOfType<LottoMachine>();
+            var before = machine.Balls.Select(ball => ball.transform.position).ToArray();
+
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            var moved = machine.Balls.Where((ball, index) => Vector3.Distance(ball.transform.position, before[index]) > 0.05f).Count();
+            var centre = machine.transform.position;
+            var escaped = machine.Balls.Count(ball => Vector3.Distance(new Vector3(ball.transform.position.x, 0f, ball.transform.position.z), new Vector3(centre.x, 0f, centre.z)) > 0.6f);
+            Assert.That(moved, Is.GreaterThan(10));
+            Assert.That(escaped, Is.EqualTo(0));
         }
 
         [UnityTest]

@@ -9,7 +9,7 @@ A plaza with five glowing cylinder stands around a central hub. Each stand shows
 | Outline | `Outline` in three colours | Look at the sphere, cube or capsule: the outline switches on while you look and off when you look away. |
 | Look at | `LookDetector` and `LookTarget` with a dwell time | Keep your eyes on the orb for about a second and a half: it flashes when seen. |
 | Check points | `CheckPoint` and `CheckPointsParent` | Look at each of the three crystals: each one lights up, and the ring lights when all three are checked. |
-| Snap | `SnapPoint`, `Snappable`, `SnapKey` | Two blocks drop onto the pad: the cyan one holds the accepted key and snaps in, the red one is refused. |
+| Snap | `SnapPoint`, `Snappable`, `SnapKey` | Twenty numbered balls tumble in a lotto drum, five each of red, cyan, lime and gold. Press 1 to 4 to draw a colour: the balls of that colour snap into their tray around the drum and every other colour is refused, because each tray only accepts its own key. The status line shows how many snapped and how many were refused. |
 | Eye height | `EyeHeightPlacer` | Press P to bring the panel to eye height in front of you. |
 
 ## Controls
@@ -18,7 +18,8 @@ A plaza with five glowing cylinder stands around a central hub. Each stand shows
 |---|---|
 | W A S D and mouse | Walk and look |
 | R | Reset the look orb and the check points |
-| Space | Drop the snap blocks again |
+| 1 2 3 4 | Snap the red, cyan, lime or gold balls |
+| Space | Shuffle the lotto balls and empty the trays |
 | P | Place the panel at eye height in front of you |
 | O | Send the panel back to its stand |
 | H | Show or hide the help overlay |
