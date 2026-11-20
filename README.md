@@ -10,7 +10,7 @@ Building blocks for Unity guided experiences, shared by the Framework packages. 
 | `Framework.Outline` | Object outlines with their shaders and materials. |
 | `Framework.Timing` | `ElapsedTimer` (how long something took) and `CountdownTimer` (a time limit or idle wait), on an `ITimeSource`. |
 | `Framework.Tools` | Small scene tools such as `SnapObject`. |
-| `Framework.Core.Editor` | Editor only. Imports the package samples (Tools > Framework > Import core samples), also used by the sequencer package. |
+| `Framework.Core.Editor` | Editor only. Imports the package samples (Tools > Framework > Import core samples) and compares package versions (`PackageVersion`, `PackageCompatibility`); both are also used by the sequencer package. |
 
 ## Sample
 
