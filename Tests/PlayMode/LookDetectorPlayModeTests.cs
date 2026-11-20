@@ -62,6 +62,7 @@ namespace Framework.Tests
 
             _detector.StartLooking();
             yield return PlayModeWait.Until(() => _stopReasons.Count == 1, "the detector stops after seeing the target");
+            yield return null;
 
             Assert.That(_ahead.IsSeen, Is.True);
             CollectionAssert.AreEqual(new[] { LookStopReason.AnyTargetSeen }, _stopReasons);

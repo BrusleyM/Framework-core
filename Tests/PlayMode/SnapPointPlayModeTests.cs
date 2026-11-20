@@ -91,6 +91,8 @@ namespace Framework.Tests
             _point.TryOffer(_snappable);
             yield return null;
 
+            Assert.That(_point.IsOccupied, Is.True);
+
             Object.Destroy(_snappableObject);
             yield return PlayModeWait.Until(() => !_point.IsOccupied, "the point is freed after the snappable is destroyed");
 
