@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-20
+
 ### Changed
 - The core showcase sample and its tests use `FindFirstObjectByType` and `FindObjectsByType` instead of the obsolete `FindObjectOfType` and `FindObjectsOfType`, which produced compiler warnings on Unity 6. Both exist from Unity 2022.3.
 - The CI Unity jobs pin the game-ci CLI release (`cliVersion`) instead of asking the GitHub API for the latest one, which answered 403 (rate limit) when jobs started together and ended the job with "No test result files were found".
