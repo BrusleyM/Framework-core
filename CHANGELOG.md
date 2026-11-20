@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Changed
+- The CI Unity jobs cache the host project's Library by the package sources too, and no longer fall back to an older Library. A cache keyed only by the project manifest could restore a Library from before files were added, so Unity compiled a script without the files next to it and the job ended with "No test result files were found".
 - Samples are opt-in. The core showcase is in `Samples~/CoreShowcase` and listed in `package.json`, so it no longer imports (about 117 files and its scripts) into every project that installs the package; import it from the Package Manager's Samples tab. A package that is a folder inside Assets (a submodule) does not list samples, so Tools > Framework > Import core samples (new `Framework.Core.Editor` assembly with `SampleImporter`) copies them to `Assets/Samples/Framework Core`. The showcase scene tests moved into the sample (`Framework.Core.Samples.Tests`) and run once it is imported; the CI host project imports the samples before running tests. The package check fails when a sample is left in `Samples/`, is not listed in `package.json` or a listed folder is missing. Breaking for projects that referenced files under `Samples/CoreShowcase` in place (their paths change to `Assets/Samples/...` after importing).
 
 ### Added
