@@ -48,12 +48,12 @@ namespace Framework.Tests
             _player = _head.parent;
             _player.GetComponent<ShowcaseCameraRig>().enabled = false;
             _detector = _head.GetComponent<LookDetector>();
-            _keys = Object.FindObjectOfType<ShowcaseKeys>();
+            _keys = Object.FindFirstObjectByType<ShowcaseKeys>();
         }
 
         private static T Named<T>(string name) where T : Component
         {
-            return Object.FindObjectsOfType<T>(true).First(candidate => candidate.name == name);
+            return Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(candidate => candidate.name == name);
         }
 
         private void StandNear(Component target)
@@ -119,7 +119,7 @@ namespace Framework.Tests
         public IEnumerator Looking_at_all_three_crystals_checks_every_point_and_raises_the_all_checked_event()
         {
             yield return SetUpTheShowcase();
-            var showcase = Object.FindObjectOfType<CheckPointsShowcase>();
+            var showcase = Object.FindFirstObjectByType<CheckPointsShowcase>();
             var allChecked = false;
             showcase.Points.OnAllChecked.AddListener(() => allChecked = true);
 
@@ -154,7 +154,7 @@ namespace Framework.Tests
         public IEnumerator Drawing_a_colour_snaps_every_ball_of_that_colour_into_its_tray_and_refuses_the_rest()
         {
             yield return SetUpTheShowcase();
-            var machine = Object.FindObjectOfType<LottoMachine>();
+            var machine = Object.FindFirstObjectByType<LottoMachine>();
 
             _keys.Press(KeyCode.Alpha2);
             yield return Until(() => !machine.IsDrawing);
@@ -169,7 +169,7 @@ namespace Framework.Tests
         public IEnumerator Drawing_two_colours_fills_both_trays_without_mixing_colours()
         {
             yield return SetUpTheShowcase();
-            var machine = Object.FindObjectOfType<LottoMachine>();
+            var machine = Object.FindFirstObjectByType<LottoMachine>();
 
             _keys.Press(KeyCode.Alpha3);
             yield return Until(() => !machine.IsDrawing);
@@ -184,7 +184,7 @@ namespace Framework.Tests
         public IEnumerator Pressing_space_empties_the_trays_so_a_colour_can_be_drawn_again()
         {
             yield return SetUpTheShowcase();
-            var machine = Object.FindObjectOfType<LottoMachine>();
+            var machine = Object.FindFirstObjectByType<LottoMachine>();
             _keys.Press(KeyCode.Alpha1);
             yield return Until(() => !machine.IsDrawing);
 
@@ -201,7 +201,7 @@ namespace Framework.Tests
         public IEnumerator The_balls_keep_tumbling_inside_the_drum_until_they_are_drawn()
         {
             yield return SetUpTheShowcase();
-            var machine = Object.FindObjectOfType<LottoMachine>();
+            var machine = Object.FindFirstObjectByType<LottoMachine>();
             var before = machine.Balls.Select(ball => ball.transform.position).ToArray();
 
             yield return new WaitForSecondsRealtime(1.5f);
