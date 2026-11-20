@@ -4,6 +4,7 @@
     "references": [
         "Framework.Tools",
         "Framework.CheckPoints",
+        "Framework.Core.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
