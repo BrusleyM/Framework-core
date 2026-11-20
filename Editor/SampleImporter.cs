@@ -74,9 +74,9 @@ namespace Framework.Editor
             return imported;
         }
 
-        public static PackageSamples ReadPackage(string packageJson)
+        public static PackageManifest ReadPackage(string packageJson)
         {
-            var package = JsonUtility.FromJson<PackageSamples>(packageJson);
+            var package = JsonUtility.FromJson<PackageManifest>(packageJson);
             package.samples = package.samples ?? new SampleEntry[0];
             return package;
         }
@@ -161,9 +161,12 @@ namespace Framework.Editor
         }
 
         [Serializable]
-        public class PackageSamples
+        public class PackageManifest
         {
+            public string name;
             public string displayName;
+            public string version;
+            public string requiresCore;
             public SampleEntry[] samples;
         }
 
