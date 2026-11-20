@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-20
+
 ### Changed
 - Breaking for code that used it: `SampleImporter.PackageSamples` is now `SampleImporter.PackageManifest`.
 - `PackageVersion` compares pre-release labels the way semantic versioning does (`preview.10` is above `preview.2`, a number is below a word, a shorter label is below a longer one), no longer throws on numbers that do not fit or on non-ASCII digits, and `SampleImporter.ReadPackage` reads an empty manifest as one without samples.
