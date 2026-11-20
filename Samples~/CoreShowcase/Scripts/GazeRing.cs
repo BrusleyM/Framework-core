@@ -19,7 +19,7 @@ namespace Framework.Samples
 
         private void Start()
         {
-            foreach (var target in FindObjectsOfType<LookTarget>())
+            foreach (var target in FindObjectsByType<LookTarget>(FindObjectsSortMode.None))
             {
                 _rings[target] = CreateRingFor(target);
                 target.LookStarted += () => Show(target);
