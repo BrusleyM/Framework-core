@@ -10,6 +10,10 @@ Building blocks for Unity guided experiences, shared by the Framework packages. 
 | `Framework.Outline` | Object outlines with their shaders and materials. |
 | `Framework.Tools` | Small scene tools such as `SnapObject`. |
 
+## Sample
+
+`Samples/CoreShowcase/Scenes/Core Showcase.unity` shows every feature on glowing stands. Controls and details are in `Samples/CoreShowcase/README.md`.
+
 ## Installation
 
 Add the package by git URL in the Package Manager, pinned to a release tag:

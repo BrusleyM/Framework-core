@@ -8,9 +8,9 @@ namespace Framework.CheckPoints
     public class CheckPointsParent
     {
         [SerializeField]
-        private List<CheckPoint> _points;
+        private List<CheckPoint> _points = new List<CheckPoint>();
         [SerializeField]
-        private UnityEvent _onAllChecked;
+        private UnityEvent _onAllChecked = new UnityEvent();
 
         public List<CheckPoint> CheckPoints => _points;
         public UnityEvent OnAllChecked => _onAllChecked;
