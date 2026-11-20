@@ -11,7 +11,7 @@ namespace Framework.Tests
 {
     public class CoreShowcaseSceneTests
     {
-        private const string ScenePath = "Assets/Framework Core/Samples/CoreShowcase/Scenes/Core Showcase.unity";
+        private const string SceneGuid = "cec83fac316344c098cbc919581f66c8";
         private const float PollSeconds = 8f;
 
         private Transform _player;
@@ -32,7 +32,7 @@ namespace Framework.Tests
         private IEnumerator LoadTheShowcase()
         {
 #if UNITY_EDITOR
-            yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
+            yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(UnityEditor.AssetDatabase.GUIDToAssetPath(SceneGuid), new LoadSceneParameters(LoadSceneMode.Single));
 #else
             yield break;
 #endif
