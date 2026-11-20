@@ -61,7 +61,7 @@ namespace Framework.Tests
             yield return null;
 
             _detector.StartLooking();
-            yield return new WaitForSecondsRealtime(0.6f);
+            yield return PlayModeWait.Until(() => _stopReasons.Count == 1, "the detector stops after seeing the target");
 
             Assert.That(_ahead.IsSeen, Is.True);
             CollectionAssert.AreEqual(new[] { LookStopReason.AnyTargetSeen }, _stopReasons);
@@ -664,7 +664,7 @@ namespace Framework.Tests
             yield return null;
 
             _detector.StartLooking();
-            yield return PlayModeWait.Until(() => side.IsSeen, 3f);
+            yield return PlayModeWait.Until(() => side.IsSeen, "the side target is seen", 3f);
 
             Assert.That(_foundCount, Is.EqualTo(2));
             Assert.That(side.IsSeen, Is.True);

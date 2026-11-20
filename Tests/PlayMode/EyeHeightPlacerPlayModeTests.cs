@@ -51,7 +51,7 @@ namespace Framework.Tests
             yield return null;
             var yBeforeDelay = _targetObject.transform.position.y;
 
-            yield return new WaitForSecondsRealtime(DelaySeconds + 0.3f);
+            yield return PlayModeWait.Until(() => Mathf.Abs(_targetObject.transform.position.y - 1.6f) < 0.0001f, "the target is placed at eye height");
 
             Assert.That(yBeforeDelay, Is.EqualTo(0f).Within(0.0001f));
             Assert.That(_targetObject.transform.position.y, Is.EqualTo(1.6f).Within(0.0001f));
@@ -65,7 +65,7 @@ namespace Framework.Tests
             yield return null;
 
             _targetObject.SetActive(false);
-            yield return new WaitForSecondsRealtime(DelaySeconds + 0.3f);
+            yield return PlayModeWait.WhileNothingShouldHappen(DelaySeconds + 0.3f);
 
             Assert.That(_targetObject.transform.position.y, Is.EqualTo(0f).Within(0.0001f));
         }
@@ -78,7 +78,7 @@ namespace Framework.Tests
             yield return null;
 
             _eyesObject.transform.position = new Vector3(0f, 1.2f, 0f);
-            yield return new WaitForSecondsRealtime(DelaySeconds + 0.3f);
+            yield return PlayModeWait.Until(() => Mathf.Abs(_targetObject.transform.position.y - 1.2f) < 0.0001f, "the target is placed at the new eye height");
 
             Assert.That(_targetObject.transform.position.y, Is.EqualTo(1.2f).Within(0.0001f));
         }
