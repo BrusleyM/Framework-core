@@ -76,6 +76,7 @@ jobs:
           --unity "${{ matrix.unity }}"
           --urp "${{ matrix.urp }}"
           --test-framework "${{ matrix.testFramework }}"
+          --import-samples
       - uses: actions/cache@v4
         with:
           path: .host/Library

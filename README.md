@@ -10,10 +10,11 @@ Building blocks for Unity guided experiences, shared by the Framework packages. 
 | `Framework.Outline` | Object outlines with their shaders and materials. |
 | `Framework.Timing` | `ElapsedTimer` (how long something took) and `CountdownTimer` (a time limit or idle wait), on an `ITimeSource`. |
 | `Framework.Tools` | Small scene tools such as `SnapObject`. |
+| `Framework.Core.Editor` | Editor only. Imports the package samples (Tools > Framework > Import core samples), also used by the sequencer package. |
 
 ## Sample
 
-`Samples/CoreShowcase/Scenes/Core Showcase.unity` shows every feature on glowing stands. Controls and details are in `Samples/CoreShowcase/README.md`.
+The core showcase is an optional sample: a plaza with five glowing stands that show every feature. It does not install with the package. Import it in the Package Manager (select Framework Core, open the Samples tab, press Import), and it is copied to `Assets/Samples/Framework Core/<version>/Core showcase` with its tests. When the package is a folder inside Assets (a submodule, for example) Unity does not list its samples, so use Tools > Framework > Import core samples, which copies them to `Assets/Samples/Framework Core/Core showcase`. Open `Scenes/Core Showcase.unity` from there; controls and details are in the README next to it.
 
 ## Installation
 

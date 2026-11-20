@@ -1,3 +1,4 @@
+import json
 import pathlib
 import sys
 import tempfile
@@ -28,6 +29,33 @@ class HostProjectTests(unittest.TestCase):
             self.assertEqual("m_EditorVersion: 6000.3.9f1\n", (project / "ProjectSettings" / "ProjectVersion.txt").read_text())
             self.assertIn("file:../..", (project / "Packages" / "manifest.json").read_text())
             self.assertTrue((project / "Assets").is_dir())
+
+
+class ImportSamplesTests(unittest.TestCase):
+    def test_the_samples_are_copied_into_the_host_project_like_the_package_manager_does(self):
+        with tempfile.TemporaryDirectory() as folder:
+            package = pathlib.Path(folder) / "package"
+            (package / "Samples~" / "Showcase").mkdir(parents=True)
+            (package / "Samples~" / "Showcase" / "a.cs").write_text("a")
+            (package / "package.json").write_text(json.dumps({
+                "displayName": "Framework Core",
+                "version": "1.2.0",
+                "samples": [{"displayName": "Showcase", "description": "d", "path": "Samples~/Showcase"}],
+            }))
+            project = package / ".host"
+
+            imported = create_host_project.import_samples(project, package)
+
+            expected = project / "Assets" / "Samples" / "Framework Core" / "1.2.0" / "Showcase"
+            self.assertEqual([expected], imported)
+            self.assertEqual("a", (expected / "a.cs").read_text())
+
+    def test_a_package_without_samples_imports_nothing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            package = pathlib.Path(folder)
+            (package / "package.json").write_text(json.dumps({"displayName": "X", "version": "1.0.0"}))
+
+            self.assertEqual([], create_host_project.import_samples(package / ".host", package))
 
 
 class TestResultsTests(unittest.TestCase):
