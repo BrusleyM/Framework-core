@@ -59,7 +59,8 @@ namespace Framework.Tests
             _point.TryOffer(_snappable);
             Assert.That(_snappedCount, Is.EqualTo(0));
 
-            yield return new WaitForSecondsRealtime(SnapSeconds + 0.3f);
+            yield return PlayModeWait.Until(() => _snappedCount > 0, "the animated snap is reported");
+            yield return null;
 
             Assert.That(_snappableObject.transform.position, Is.EqualTo(_pointObject.transform.position));
             Assert.That(_snappedCount, Is.EqualTo(1));
@@ -75,7 +76,7 @@ namespace Framework.Tests
 
             _point.Release();
             var positionWhenReleased = _snappableObject.transform.position;
-            yield return new WaitForSecondsRealtime(0.3f);
+            yield return PlayModeWait.WhileNothingShouldHappen(0.3f);
 
             Assert.That(_snappableObject.transform.position, Is.EqualTo(positionWhenReleased));
             Assert.That(_snappedCount, Is.EqualTo(0));
@@ -90,8 +91,10 @@ namespace Framework.Tests
             _point.TryOffer(_snappable);
             yield return null;
 
+            Assert.That(_point.IsOccupied, Is.True);
+
             Object.Destroy(_snappableObject);
-            yield return new WaitForSecondsRealtime(0.3f);
+            yield return PlayModeWait.Until(() => !_point.IsOccupied, "the point is freed after the snappable is destroyed");
 
             Assert.That(_point.IsOccupied, Is.False);
             Assert.That(_releasedCount, Is.EqualTo(1));
@@ -132,7 +135,7 @@ namespace Framework.Tests
         public IEnumerator Disabling_the_point_after_the_snap_finished_keeps_the_object_snapped()
         {
             _point.TryOffer(_snappable);
-            yield return new WaitForSecondsRealtime(SnapSeconds + 0.3f);
+            yield return PlayModeWait.Until(() => _snappedCount > 0, "the snap finishes");
 
             _point.enabled = false;
             yield return null;
@@ -149,7 +152,7 @@ namespace Framework.Tests
             yield return null;
 
             _pointObject.transform.position = new Vector3(0f, 5f, 0f);
-            yield return new WaitForSecondsRealtime(LongSnapSeconds + 0.3f);
+            yield return PlayModeWait.Until(() => _snappedCount > 0, "the snap finishes at the moved point");
 
             Assert.That(Vector3.Distance(_snappableObject.transform.position, _pointObject.transform.position), Is.LessThan(0.001f));
         }
@@ -159,13 +162,13 @@ namespace Framework.Tests
         {
             Time.timeScale = 0f;
             _point.TryOffer(_snappable);
-            yield return new WaitForSecondsRealtime(SnapSeconds + 0.3f);
+            yield return PlayModeWait.WhileNothingShouldHappen(SnapSeconds + 0.3f);
             var snappedWhilePaused = _snappedCount;
             _point.Release();
 
             SetPrivate(_point, "_ignoreTimeScale", true);
             _point.TryOffer(_snappable);
-            yield return new WaitForSecondsRealtime(SnapSeconds + 0.3f);
+            yield return PlayModeWait.Until(() => _snappedCount > 0, "the snap ignores the paused time scale and finishes");
 
             Assert.That(snappedWhilePaused, Is.EqualTo(0));
             Assert.That(_snappedCount, Is.EqualTo(1));
@@ -233,6 +236,58 @@ namespace Framework.Tests
 
             Assert.That(_point.Occupant, Is.SameAs(_snappable));
             Assert.That(body.isKinematic, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator A_failure_in_the_first_animation_step_is_logged_and_the_offer_reports_failure()
+        {
+            var body = _snappableObject.AddComponent<Rigidbody>();
+            SetPrivate(_point, "_easing", null);
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("NullReferenceException"));
+
+            var accepted = _point.TryOffer(_snappable);
+            yield return null;
+
+            Assert.That(accepted, Is.False);
+            Assert.That(_point.IsOccupied, Is.False);
+            Assert.That(_snappable.IsSnapped, Is.False);
+            Assert.That(body.isKinematic, Is.False);
+            Assert.That(_snappedCount, Is.EqualTo(0));
+            Assert.That(_releasedCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator A_failure_in_the_middle_of_an_animation_is_logged_and_releases_the_object()
+        {
+            var body = _snappableObject.AddComponent<Rigidbody>();
+            SetPrivate(_point, "_snapDurationSeconds", 2f);
+            var accepted = _point.TryOffer(_snappable);
+            yield return null;
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("NullReferenceException"));
+
+            SetPrivate(_point, "_easing", null);
+            yield return PlayModeWait.Until(() => !_point.IsOccupied, "the point is released", 2f);
+
+            Assert.That(accepted, Is.True);
+            Assert.That(_point.IsOccupied, Is.False);
+            Assert.That(_snappable.IsSnapped, Is.False);
+            Assert.That(body.isKinematic, Is.False);
+            Assert.That(_releasedCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator A_listener_that_fails_when_the_snap_completes_is_logged_and_does_not_undo_the_snap()
+        {
+            SetPrivate(_point, "_snapDurationSeconds", 0.1f);
+            _point.OnSnapped.AddListener(_ => throw new System.InvalidOperationException("listener failed"));
+            LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("listener failed"));
+
+            _point.TryOffer(_snappable);
+            yield return PlayModeWait.Until(() => _snappedCount > 0, "the snap is reported", 2f);
+            yield return null;
+
+            Assert.That(_point.IsOccupied, Is.True);
+            Assert.That(_snappableObject.transform.position, Is.EqualTo(_pointObject.transform.position));
         }
 
         private static void SetPrivate(object target, string fieldName, object value)

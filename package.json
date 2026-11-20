@@ -1,6 +1,6 @@
 {
     "name": "com.vishnu.framework.core",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "displayName": "Framework Core",
     "description": "Core building blocks for Unity guided experiences: check points, object outlines and scene tools.",
     "unity": "2022.3",
@@ -15,6 +15,13 @@
         "name": "Brusley Masemola",
         "url": "https://github.com/BrusleyM/Framework-core"
     },
+    "samples": [
+        {
+            "displayName": "Core showcase",
+            "description": "A plaza with five glowing stands that demonstrate the outline, look-at detection, check points, snap points and the eye height placer, with custom URP shaders. Needs the Universal Render Pipeline with HDR on and the legacy Input Manager.",
+            "path": "Samples~/CoreShowcase"
+        }
+    ],
     "dependencies": {
         "com.unity.modules.physics": "1.0.0",
         "com.unity.render-pipelines.universal": "14.0.8"
